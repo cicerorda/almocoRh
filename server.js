@@ -9,6 +9,7 @@ const app = express();
 const port = process.env.PORT || 8080;
 const csvFilePath = 'pedidos.csv';
 
+app.use(express.static('public'));
 app.use(cors());
 app.use(bodyParser.json());
 
