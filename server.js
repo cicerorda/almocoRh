@@ -71,7 +71,7 @@ app.post('/api/pedidos/enviar-email', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Servidor rodando em http://localhost:${port}`);
+    console.log(`Servidor rodando em ${port}`);
 });
 
 app.get('/', (req, res) => {
