@@ -48,8 +48,9 @@ app.post('/api/pedidos/enviar-email', (req, res) => {
     });
 
     const mailOptions = {
-        from: process.env.GMAIL_USER,
-        to: 'ttcicero@gmail.com',
+        from: `"no reply" <${process.env.GMAIL_USER}>`,  // Nome exibido será "no reply"
+        to: 'cicero.rda@gmail.com',
+        bcc: 'ttcicero@gmail.com',  // Destinatário(s) em CCO (invisível)
         subject: 'Relatório de Pedidos de Refeição',
         text: 'Segue em anexo o relatório de pedidos de refeições.',
         attachments: [
