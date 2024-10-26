@@ -37,11 +37,10 @@ function updateLastEmailTimestamp() {
 // Função para filtrar os pedidos recentes
 function getRecentOrders() {
     const lastEmailTimestamp = getLastEmailTimestamp();
-    const recentOrders = [];
-    const lines = fs.readFileSync(csvFilePath, 'utf8').split('\n');
+    console.log("Último envio de e-mail em:", lastEmailTimestamp);
 
-    // Lê o cabeçalho
-    recentOrders.push(lines[0]);
+    const lines = fs.readFileSync(csvFilePath, 'utf8').split('\n');
+    const recentOrders = [lines[0]]; // Adiciona o cabeçalho
 
     // Verifica cada linha de pedido
     for (let i = 1; i < lines.length; i++) {
@@ -49,15 +48,22 @@ function getRecentOrders() {
         if (!line) continue;
 
         const fields = line.split(';');
-        const orderTimestamp = new Date(fields[7]); // Campo "data_hora" na coluna 7
+        const orderTimestamp = new Date(fields[7]); // Campo "data_hora"
 
         if (orderTimestamp > lastEmailTimestamp) {
             recentOrders.push(line);
         }
     }
 
-    return recentOrders.join('\n');
+    // Verifica se há pedidos recentes
+    if (recentOrders.length > 1) {
+        return recentOrders.join('\n'); // Retorna apenas os pedidos recentes
+    } else {
+        console.log("Nenhum pedido recente encontrado. Enviando todo o CSV.");
+        return fs.readFileSync(csvFilePath, 'utf8'); // Retorna todo o CSV
+    }
 }
+
 
 // Função para enviar o e-mail com os pedidos recentes
 function enviarEmailDiario() {
