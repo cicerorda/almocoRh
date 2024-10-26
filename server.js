@@ -8,6 +8,7 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 8080;
 const csvFilePath = 'pedidos.csv';
+const lastEmailTimestampFile = 'last_email_timestamp.txt';
 
 app.use(express.static('public'));
 app.use(cors());
@@ -15,14 +16,56 @@ app.use(bodyParser.json());
 
 function checkAndWriteHeader() {
     if (!fs.existsSync(csvFilePath)) {
-        const header = 'nome;empresa;almoco;salada;sobremesa;porcao;observacoes\n';
+        const header = 'nome;empresa;almoco;salada;sobremesa;porcao;observacoes;data_hora\n';
         fs.writeFileSync(csvFilePath, header);
     }
 }
 
-// Função para enviar o e-mail diário com o CSV
+function getLastEmailTimestamp() {
+    if (fs.existsSync(lastEmailTimestampFile)) {
+        const timestamp = fs.readFileSync(lastEmailTimestampFile, 'utf8');
+        return new Date(timestamp);
+    }
+    return new Date(0); // Se não houver um timestamp, retorna uma data inicial (ex: 1970)
+}
+
+function updateLastEmailTimestamp() {
+    const currentTimestamp = new Date().toISOString();
+    fs.writeFileSync(lastEmailTimestampFile, currentTimestamp);
+}
+
+// Função para filtrar os pedidos recentes
+function getRecentOrders() {
+    const lastEmailTimestamp = getLastEmailTimestamp();
+    const recentOrders = [];
+    const lines = fs.readFileSync(csvFilePath, 'utf8').split('\n');
+
+    // Lê o cabeçalho
+    recentOrders.push(lines[0]);
+
+    // Verifica cada linha de pedido
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const fields = line.split(';');
+        const orderTimestamp = new Date(fields[7]); // Campo "data_hora" na coluna 7
+
+        if (orderTimestamp > lastEmailTimestamp) {
+            recentOrders.push(line);
+        }
+    }
+
+    return recentOrders.join('\n');
+}
+
+// Função para enviar o e-mail com os pedidos recentes
 function enviarEmailDiario() {
-    const csvContent = fs.readFileSync(csvFilePath).toString();
+    const recentOrdersCSV = getRecentOrders();
+    if (recentOrdersCSV.split('\n').length <= 1) {
+        console.log('Nenhum pedido recente para enviar.');
+        return;
+    }
 
     const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -33,15 +76,15 @@ function enviarEmailDiario() {
     });
 
     const mailOptions = {
-        from: `"No Reply" <${process.env.GMAIL_USER}>`,  // Nome exibido será "No Reply"
-        to: '',  // Campo 'to' vazio
-        bcc: 'ttcicero@gmail.com',  // Destinatário invisível em CCO
+        from: `"No Reply" <${process.env.GMAIL_USER}>`,
+        to: '',
+        bcc: 'destinatario@exemplo.com',
         subject: 'Relatório Diário de Pedidos de Refeição',
-        text: 'Segue em anexo o relatório de pedidos de refeições.',
+        text: 'Segue em anexo o relatório de pedidos de refeições recentes.',
         attachments: [
             {
-                filename: 'pedidos.csv',
-                content: csvContent,
+                filename: 'pedidos_recentes.csv',
+                content: recentOrdersCSV,
                 type: 'text/csv'
             }
         ]
@@ -49,18 +92,12 @@ function enviarEmailDiario() {
 
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-            return console.error('Erro ao enviar e-mail:', error);
+            console.error('Erro ao enviar e-mail:', error);
+        } else {
+            console.log('E-mail enviado com sucesso:', info.response);
+            updateLastEmailTimestamp(); // Atualiza o timestamp após envio bem-sucedido
         }
-        console.log('E-mail diário enviado com sucesso:', info.response);
     });
-}
-
-// Função para verificar se o cabeçalho existe e criar o arquivo se necessário
-function checkAndWriteHeader() {
-    if (!fs.existsSync(csvFilePath)) {
-        const header = 'nome;empresa;almoco;salada;sobremesa;porcao;observacoes;data_hora\n';
-        fs.writeFileSync(csvFilePath, header);
-    }
 }
 
 // Rota para salvar o pedido no CSV com data e hora
@@ -84,7 +121,7 @@ app.post('/api/pedidos/salvar', (req, res) => {
     });
 });
 
-// Rota para enviar o CSV por e-mail (manual)
+// Rota para envio manual do e-mail
 app.post('/api/pedidos/enviar-email', (req, res) => {
     enviarEmailDiario();
     res.json({ message: 'Solicitação de envio de e-mail recebida!' });
