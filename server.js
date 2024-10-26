@@ -219,5 +219,11 @@ cron.schedule('0 10 28-31 * *', () => {
     }
 });
 
+// Inicia o servidor
 app.listen(port, () => {
-    console.log(`Servidor rodando na
+    console.log(`Servidor rodando na porta ${port}`);
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/index.html');
+});
