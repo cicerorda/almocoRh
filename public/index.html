@@ -216,7 +216,10 @@
         body: JSON.stringify(pedido)
     })
     .then(response => response.json())
-    .then(data => alert(data.message))
+    .then(data => {
+            alert(data.message);
+            document.getElementById("pedidoForm").reset(); // Limpa o formulário após salvar
+        })
     .catch(error => console.error('Erro:', error));
 });
 
