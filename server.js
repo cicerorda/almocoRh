@@ -83,7 +83,7 @@ function enviarEmailDiario() {
         text: 'Segue em anexo o relatório de pedidos de refeições recentes.',
         attachments: [
             {
-                filename: 'pedidos_recentes.csv',
+                filename: 'pedidos.csv',
                 content: recentOrdersCSV,
                 type: 'text/csv'
             }
