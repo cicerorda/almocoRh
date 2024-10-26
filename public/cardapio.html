@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tela de Entrada</title>
+    <title>Cardápio</title>
     <style>
-        /* Estilos gerais */
+        /* Estilos gerais para harmonizar com a página home */
         body {
             display: flex;
             justify-content: center;
@@ -24,18 +24,7 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             background-color: #ffffff;
-        }
-
-        .logos {
-            display: flex;
-            flex-direction: column; /* Alinhamento vertical */
-            align-items: center; /* Centralizar na horizontal */
-            gap: 10px; /* Espaço entre os logos */
-            margin: 20px 0;
-        }
-
-        .logo {
-            width: 150px;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         h1 {
@@ -43,40 +32,29 @@
             margin-bottom: 20px;
         }
 
-        .buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
+        p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
         }
 
-        .buttons button {
-            padding: 10px;
-            font-size: 16px;
+        .button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #3498db;
             color: #ffffff;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 16px;
             transition: background-color 0.3s;
         }
 
-        #pedidoButton {
-            background-color: #3498db;
-        }
-
-        #pedidoButton:hover {
+        .button:hover {
             background-color: #2980b9;
         }
 
-        #cardapioButton {
-            background-color: #e74c3c;
-        }
-
-        #cardapioButton:hover {
-            background-color: #c0392b;
-        }
-
-        /* Estilos para Modo Escuro */
+        /* Estilos para o modo escuro */
         .dark-mode {
             background-color: #121212;
             color: #ffffff;
@@ -84,13 +62,14 @@
 
         .container.dark-mode {
             background-color: #1e1e1e;
+            color: #ffffff;
         }
 
-        .buttons button.dark-mode {
+        .button.dark-mode {
             background-color: #4a90e2;
         }
 
-        .buttons button.dark-mode:hover {
+        .button.dark-mode:hover {
             background-color: #357abd;
         }
     </style>
@@ -98,15 +77,9 @@
 <body>
 
     <div class="container" id="appContainer">
-        <h1>Bem-vindo!</h1>
-        <div class="logos">
-            <img src="metalburgo-logo.jfif" alt="Logo Metalburgo" class="logo">
-            <img src="tempero-caseiro-logo.jfif" alt="Logo Tempero Caseiro" class="logo">
-        </div>
-        <div class="buttons">
-            <button id="pedidoButton" onclick="window.location.href='pedidos.html'">Fazer Pedido</button>
-            <button id="cardapioButton" onclick="window.location.href='cardapio.html'">Cardápio</button>
-        </div>
+        <h1>Cardápio</h1>
+        <p>Aqui está o conteúdo do cardápio...</p>
+        <button class="button" onclick="window.location.href='index.html'">Voltar à Página Inicial</button>
     </div>
 
     <script>
@@ -115,7 +88,7 @@
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 document.body.classList.add('dark-mode');
                 document.getElementById("appContainer").classList.add('dark-mode');
-                document.querySelectorAll('button').forEach(function(el) {
+                document.querySelectorAll('.button').forEach(function(el) {
                     el.classList.add('dark-mode');
                 });
             }

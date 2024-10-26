@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedidos de Refeição</title>
+    <style>
+        /* Estilos gerais */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            text-align: center;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        input, textarea, select {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #sendEmail {
+            background-color: #e74c3c;
+        }
+
+        #sendEmail:hover {
+            background-color: #c0392b;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .button-group button {
+            width: 100%; /* Deixa os botões com largura total no contêiner */
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px;
+            }
+        }
+
+        /* Modo escuro */
+        body.dark-mode {
+            background-color: #121212;
+            color: #ffffff;
+        }
+
+        .container.dark-mode {
+            background-color: #1e1e1e;
+            color: #ffffff;
+        }
+
+        input.dark-mode, textarea.dark-mode, select.dark-mode {
+            background-color: #333;
+            color: #fff;
+            border-color: #555;
+        }
+
+        input.dark-mode::placeholder, textarea.dark-mode::placeholder {
+            color: #aaa;
+        }
+
+        button.dark-mode {
+            background-color: #4a90e2;
+        }
+
+        button.dark-mode:hover {
+            background-color: #357abd;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="appContainer">
+        <h1>Faça seu Pedido</h1>
+        <form id="pedidoForm">
+            <label for="nome">Seu Nome:</label>
+            <input type="text" id="nome" name="nome" placeholder="Digite seu nome" required>
+
+            <label for="empresa">Nome da Empresa:</label>
+            <input type="text" id="empresa" name="empresa" placeholder="Digite o nome da empresa" required>
+
+            <label for="almoco">Almoço:</label>
+            <input type="text" id="almoco" name="almoco" placeholder="Digite o pedido do almoço" required>
+
+            <label for="salada">Salada:</label>
+            <select id="salada" name="salada" required>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+            </select>
+
+            <label for="sobremesa">Sobremesa:</label>
+            <select id="sobremesa" name="sobremesa" required>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+                <option value="Fruta">Fruta</option>
+            </select>
+
+            <label for="porcao">Porção:</label>
+            <select id="porcao" name="porcao" required>
+                <option value="Pequena">Pequena</option>
+                <option value="Grande">Grande</option>
+            </select>
+
+            <label for="observacoes">Observações:</label>
+            <textarea id="observacoes" name="observacoes" placeholder="Adicione observações"></textarea>
+
+            <button type="submit">Enviar Pedido</button>
+        </form>
+
+        <!-- Container para centralizar os botões fora do formulário -->
+        <div class="button-group">
+            <button id="sendEmail">Enviar E-mail</button>
+            <button id="deleteCSV">Apagar Arquivo CSV</button>
+            <button onclick="window.location.href='index.html'">Voltar à Página Inicial</button>
+        </div>
+    </div>
+
+    <script>
+        // Função para verificar se o usuário está no modo escuro
+        function detectDarkMode() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.classList.add('dark-mode');
+                document.getElementById("appContainer").classList.add('dark-mode');
+                document.querySelectorAll('input, textarea, select, button').forEach(function(el) {
+                    el.classList.add('dark-mode');
+                });
+            }
+        }
+
+        // Função para verificar se o dispositivo é móvel
+        function isMobile() {
+            return /Mobi|Android/i.test(navigator.userAgent);
+        }
+
+        // Aplica o dark mode se for detectado
+        detectDarkMode();
+
+        // Verifica se é mobile e adiciona uma mensagem
+        if (isMobile()) {
+            console.log("Usuário está acessando via dispositivo móvel");
+        }
+
+        // Função para envio do formulário
+        document.getElementById("pedidoForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const pedido = {
+                nome: document.getElementById("nome").value,
+                empresa: document.getElementById("empresa").value,
+                almoco: document.getElementById("almoco").value,
+                salada: document.getElementById("salada").value,
+                sobremesa: document.getElementById("sobremesa").value,
+                porcao: document.getElementById("porcao").value,
+                observacoes: document.getElementById("observacoes").value
+            };
+
+            fetch('/api/pedidos/salvar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(pedido)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                document.getElementById("pedidoForm").reset(); // Limpa o formulário após salvar
+            })
+            .catch(error => console.error('Erro:', error));
+        });
+
+        // Função para apagar o CSV
+        document.getElementById("deleteCSV").addEventListener("click", function() {
+            if (confirm("Tem certeza de que deseja apagar o arquivo CSV? Essa ação é irreversível!")) {
+                fetch('/api/pedidos/apagar', {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => alert(data.message))
+                .catch(error => console.error('Erro:', error));
+            }
+        });
+
+        // Envio de e-mail
+        document.getElementById("sendEmail").addEventListener("click", function() {
+            fetch('/api/pedidos/enviar-email', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error('Erro:', error));
+        });
+    </script>
+
+</body>
+</html>
