@@ -180,6 +180,7 @@
         <div class="button-group">
             <button id="sendEmail">Enviar E-mail</button>
             <button id="deleteCSV">Apagar Arquivo CSV</button>
+            <button id="downloadCSV">Baixar CSV</button>
             <button onclick="window.location.href='index.html'">Voltar à Página Inicial</button>
         </div>
     </div>
@@ -258,6 +259,25 @@
             .then(response => response.json())
             .then(data => alert(data.message))
             .catch(error => console.error('Erro:', error));
+        });
+        document.getElementById("downloadCSV").addEventListener("click", function() {
+            fetch('/api/pedidos/download')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao baixar o arquivo');
+                }
+                return response.blob(); // Converte a resposta para um blob (arquivo binário)
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'pedidos.csv'; // Nome do arquivo a ser baixado
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            })
+            .catch(error => console.error('Erro ao baixar o CSV:', error));
         });
     </script>
 

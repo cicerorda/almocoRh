@@ -134,5 +134,22 @@ app.listen(port, () => {
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
+// Rota para baixar o arquivo CSV
+app.get('/api/pedidos/download', (req, res) => {
+    const path = require('path');
+    const csvFilePath = path.join(__dirname, 'pedidos.csv');
+
+    if (fs.existsSync(csvFilePath)) {
+        res.download(csvFilePath, 'pedidos.csv', (err) => {
+            if (err) {
+                console.error('Erro ao baixar o arquivo:', err);
+                res.status(500).json({ message: 'Erro ao baixar o arquivo' });
+            }
+        });
+    } else {
+        res.status(404).json({ message: 'Arquivo CSV não encontrado' });
+    }
+});
+
 
 module.exports = { enviarEmailDiario };
