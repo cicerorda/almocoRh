@@ -20,23 +20,8 @@ function checkAndWriteHeader() {
     }
 }
 
-// Rota para salvar o pedido no CSV
-app.post('/api/pedidos/salvar', (req, res) => {
-    const { nome, empresa, almoco, salada, sobremesa, porcao, observacoes } = req.body;
-    checkAndWriteHeader();
-
-    const novoPedido = `${nome};${empresa};${almoco};${salada};${sobremesa};${porcao};${observacoes}\n`;
-    fs.appendFile(csvFilePath, novoPedido, (err) => {
-        if (err) {
-            console.error('Erro ao salvar o pedido no CSV:', err);
-            return res.status(500).json({ message: 'Erro ao salvar o pedido' });
-        }
-        res.json({ message: 'Pedido salvo com sucesso!' });
-    });
-});
-
-// Rota para enviar o CSV por e-mail
-app.post('/api/pedidos/enviar-email', (req, res) => {
+// Função para enviar o e-mail diário com o CSV
+function enviarEmailDiario() {
     const csvContent = fs.readFileSync(csvFilePath).toString();
 
     const transporter = nodemailer.createTransport({
@@ -48,10 +33,10 @@ app.post('/api/pedidos/enviar-email', (req, res) => {
     });
 
     const mailOptions = {
-        from: `"No Reply" <${process.env.GMAIL_USER}>`,  // Nome exibido será "no reply"
-        to: 'cicero.rda@gmail.com',
-        bcc: 'ttcicero@gmail.com',  // Destinatário(s) em CCO (invisível)
-        subject: 'Relatório de Pedidos de Refeição',
+        from: `"No Reply" <${process.env.GMAIL_USER}>`,  // Nome exibido será "No Reply"
+        to: '',  // Campo 'to' vazio
+        bcc: 'ttcicero@gmail.com',  // Destinatário invisível em CCO
+        subject: 'Relatório Diário de Pedidos de Refeição',
         text: 'Segue em anexo o relatório de pedidos de refeições.',
         attachments: [
             {
@@ -64,18 +49,53 @@ app.post('/api/pedidos/enviar-email', (req, res) => {
 
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-            console.error('Erro ao enviar e-mail:', error);
-            return res.status(500).json({ message: 'Erro ao enviar o e-mail' });
+            return console.error('Erro ao enviar e-mail:', error);
         }
-        res.json({ message: 'E-mail enviado com sucesso!' });
+        console.log('E-mail diário enviado com sucesso:', info.response);
+    });
+}
+
+// Função para verificar se o cabeçalho existe e criar o arquivo se necessário
+function checkAndWriteHeader() {
+    if (!fs.existsSync(csvFilePath)) {
+        const header = 'nome;empresa;almoco;salada;sobremesa;porcao;observacoes;data_hora\n';
+        fs.writeFileSync(csvFilePath, header);
+    }
+}
+
+// Rota para salvar o pedido no CSV com data e hora
+app.post('/api/pedidos/salvar', (req, res) => {
+    const { nome, empresa, almoco, salada, sobremesa, porcao, observacoes } = req.body;
+    checkAndWriteHeader();
+
+    // Obter a data e hora atuais
+    const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+    // Formatar o pedido com a nova coluna de data e hora
+    const novoPedido = `${nome};${empresa};${almoco};${salada};${sobremesa};${porcao};${observacoes};${dataHora}\n`;
+    
+    // Salvar no CSV
+    fs.appendFile(csvFilePath, novoPedido, (err) => {
+        if (err) {
+            console.error('Erro ao salvar o pedido no CSV:', err);
+            return res.status(500).json({ message: 'Erro ao salvar o pedido' });
+        }
+        res.json({ message: 'Pedido salvo com sucesso!' });
     });
 });
 
+// Rota para enviar o CSV por e-mail (manual)
+app.post('/api/pedidos/enviar-email', (req, res) => {
+    enviarEmailDiario();
+    res.json({ message: 'Solicitação de envio de e-mail recebida!' });
+});
+
 app.listen(port, () => {
-    console.log(`Servidor rodando em ${port}`);
+    console.log(`Servidor rodando na porta ${port}`);
 });
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
 
+module.exports = { enviarEmailDiario };
