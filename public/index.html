@@ -163,6 +163,9 @@
         </form>
 
         <button id="sendEmail">Enviar E-mail</button>
+
+        <button id="deleteCSV">Apagar Arquivo CSV</button>
+
     </div>
 
     <script>
@@ -217,6 +220,16 @@
     .catch(error => console.error('Erro:', error));
 });
 
+    document.getElementById("deleteCSV").addEventListener("click", function() {
+    if (confirm("Tem certeza de que deseja apagar o arquivo CSV? Essa ação é irreversível!")) {
+        fetch('/api/pedidos/apagar', {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => alert(data.message))
+        .catch(error => console.error('Erro:', error));
+    }
+});
 
         // Envio de e-mail
         document.getElementById("sendEmail").addEventListener("click", function() {
@@ -228,7 +241,9 @@
             .then(data => alert(data.message))
             .catch(error => console.error('Erro:', error));
         });
+        
     </script>
+    
 
 </body>
 </html>
