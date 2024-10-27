@@ -275,3 +275,4 @@ app.get('/api/cardapio/imagem', (req, res) => {
         }
     });
 });
+module.exports = { enviarEmailDiario };
