@@ -51,7 +51,7 @@ async function checkForCardapioEmail() {
                 const fileName = attachment.filename.toLowerCase().replace(/\.[^/.]+$/, '');
                 
                 if (diasDaSemana.includes(fileName)) {
-                    const filePath = path.join(__dirname, 'public/images', `${fileName}.jpg`);
+                    const filePath = path.join(__dirname, 'public/images/', `${fileName}.jpg`);
                     fs.writeFileSync(filePath, attachment.content);
                     console.log(`Imagem ${fileName}.jpg salva com sucesso.`);
                 }
