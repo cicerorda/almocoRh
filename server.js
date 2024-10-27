@@ -3,7 +3,10 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
-const cron = require('node-cron');  // Pacote para agendamento de tarefas
+const cron = require('node-cron');
+const imaps = require('imap-simple');
+const { simpleParser } = require('mailparser');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -16,6 +19,54 @@ app.use(express.static('public'));
 app.use(cors());
 app.use(bodyParser.json());
 
+// Configuração do IMAP para verificação de e-mails
+const emailConfig = {
+    imap: {
+        user: process.env.EMAIL_USER,
+        password: process.env.EMAIL_PASS,
+        host: 'imap.gmail.com',
+        port: 993,
+        tls: true,
+        authTimeout: 3000
+    }
+};
+
+// Função para verificar e baixar imagens do cardápio por e-mail
+async function checkForCardapioEmail() {
+    try {
+        const connection = await imaps.connect(emailConfig);
+        await connection.openBox('INBOX');
+
+        const searchCriteria = ['UNSEEN', ['SUBJECT', 'Atualizar Cardapio']];
+        const fetchOptions = { bodies: [''], markSeen: true };
+
+        const messages = await connection.search(searchCriteria, fetchOptions);
+
+        for (let message of messages) {
+            const all = message.parts.find(part => part.which === '');
+            const parsed = await simpleParser(all.body);
+
+            const diasDaSemana = ['segunda', 'terça', 'quarta', 'quinta', 'sexta'];
+            for (let attachment of parsed.attachments) {
+                const fileName = attachment.filename.toLowerCase().replace(/\.[^/.]+$/, '');
+                
+                if (diasDaSemana.includes(fileName)) {
+                    const filePath = path.join(__dirname, 'public', `${fileName}.jpg`);
+                    fs.writeFileSync(filePath, attachment.content);
+                    console.log(`Imagem ${fileName}.jpg salva com sucesso.`);
+                }
+            }
+        }
+        connection.end();
+    } catch (error) {
+        console.error('Erro ao verificar e-mails:', error);
+    }
+}
+
+// Verificação de e-mails a cada 15 minutos
+setInterval(checkForCardapioEmail, 15 * 60 * 1000);
+
+// Função para salvar cabeçalhos em arquivos CSV
 function checkAndWriteHeader(filePath) {
     if (!fs.existsSync(filePath)) {
         const header = 'nome;empresa;almoco;salada;sobremesa;porcao;observacoes;data_hora\n';
@@ -23,7 +74,6 @@ function checkAndWriteHeader(filePath) {
     }
 }
 
-// Inicializa ambos os arquivos CSV com cabeçalho
 checkAndWriteHeader(csvFilePath);
 checkAndWriteHeader(csvFilePathMensal);
 
@@ -40,7 +90,7 @@ function updateLastEmailTimestamp() {
     fs.writeFileSync(lastEmailTimestampFile, currentTimestamp);
 }
 
-// Função para obter pedidos recentes ou todo o CSV caso não haja novos pedidos
+// Função para obter pedidos recentes ou todo o CSV
 function getRecentOrders() {
     const lastEmailTimestamp = getLastEmailTimestamp();
     const lines = fs.readFileSync(csvFilePath, 'utf8').split('\n');
@@ -66,7 +116,7 @@ function getRecentOrders() {
     }
 }
 
-// Função para enviar o e-mail e limpar `pedidos.csv`
+// Função para enviar e-mail diário e limpar o arquivo CSV
 function enviarEmailDiario() {
     const recentOrdersCSV = getRecentOrders();
 
@@ -98,13 +148,13 @@ function enviarEmailDiario() {
             console.error('Erro ao enviar e-mail:', error);
         } else {
             console.log('E-mail enviado com sucesso:', info.response);
-            updateLastEmailTimestamp(); // Atualiza o timestamp após envio bem-sucedido
-            clearCSV(csvFilePath); // Limpa o `pedidos.csv` após o envio do e-mail
+            updateLastEmailTimestamp();
+            clearCSV(csvFilePath);
         }
     });
 }
 
-// Função para enviar o e-mail com o arquivo mensal e limpar `pedidos_mensal.csv`
+// Função para enviar e-mail mensal e limpar o arquivo CSV mensal
 function enviarEmailMensal() {
     const pedidosMensal = fs.readFileSync(csvFilePathMensal, 'utf8');
 
@@ -136,12 +186,12 @@ function enviarEmailMensal() {
             console.error('Erro ao enviar e-mail mensal:', error);
         } else {
             console.log('E-mail mensal enviado com sucesso:', info.response);
-            clearCSV(csvFilePathMensal); // Limpa o `pedidos_mensal.csv` após o envio do e-mail mensal
+            clearCSV(csvFilePathMensal);
         }
     });
 }
 
-// Função para limpar o conteúdo de um arquivo CSV (mantendo o cabeçalho)
+// Função para limpar o conteúdo de um arquivo CSV
 function clearCSV(filePath) {
     const header = 'nome;empresa;almoco;salada;sobremesa;porcao;observacoes;data_hora\n';
     fs.writeFileSync(filePath, header);
@@ -172,43 +222,6 @@ app.post('/api/pedidos/salvar', (req, res) => {
     });
 });
 
-// Rota para envio manual do e-mail diário
-app.post('/api/pedidos/enviar-email', (req, res) => {
-    enviarEmailDiario();
-    res.json({ message: 'Solicitação de envio de e-mail recebida!' });
-});
-
-// Rota para baixar o arquivo CSV diário
-app.get('/api/pedidos/download', (req, res) => {
-    const path = require('path');
-    const csvFilePath = path.join(__dirname, 'pedidos.csv');
-
-    if (fs.existsSync(csvFilePath)) {
-        res.download(csvFilePath, 'pedidos.csv', (err) => {
-            if (err) {
-                console.error('Erro ao baixar o arquivo:', err);
-                res.status(500).json({ message: 'Erro ao baixar o arquivo' });
-            }
-        });
-    } else {
-        res.status(404).json({ message: 'Arquivo CSV não encontrado' });
-    }
-});
-
-// Rota para baixar o arquivo CSV mensal
-app.get('/api/pedidos/download-mensal', (req, res) => {
-    if (fs.existsSync(csvFilePathMensal)) {
-        res.download(csvFilePathMensal, 'pedidos_mensal.csv', (err) => {
-            if (err) {
-                console.error('Erro ao baixar o arquivo mensal:', err);
-                res.status(500).json({ message: 'Erro ao baixar o arquivo mensal' });
-            }
-        });
-    } else {
-        res.status(404).json({ message: 'Arquivo CSV mensal não encontrado' });
-    }
-});
-
 // Agendamento para enviar o e-mail mensal no último dia do mês às 10h
 cron.schedule('0 10 28-31 * *', () => {
     const today = new Date();
@@ -226,4 +239,39 @@ app.listen(port, () => {
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
+});
+// Função para obter a imagem do cardápio com base no dia e horário
+function getCardapioImagePath() {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentHour = now.getHours();
+    let fileName;
+
+    if (currentDay === 0 || (currentDay === 1 && currentHour < 12)) {
+        fileName = 'segunda.jpg';  // Sábado e domingo mostram o cardápio de segunda
+    } else if (currentDay === 1 && currentHour >= 12) {
+        fileName = 'terça.jpg';
+    } else if (currentDay === 2 && currentHour >= 12) {
+        fileName = 'quarta.jpg';
+    } else if (currentDay === 3 && currentHour >= 12) {
+        fileName = 'quinta.jpg';
+    } else if (currentDay === 4 && currentHour >= 12) {
+        fileName = 'sexta.jpg';
+    } else if (currentDay === 5 && currentHour >= 12) {
+        fileName = 'segunda.jpg';  // Sexta-feira após 12h já exibe o cardápio de segunda
+    } else {
+        fileName = `${['segunda', 'terça', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpg`;
+    }
+
+    return path.join(__dirname, 'public', 'images', fileName); // Certifique-se de que as imagens estão em 'public/images'
+}
+// Rota para servir a imagem do cardápio
+app.get('/api/cardapio/imagem', (req, res) => {
+    const imagePath = getCardapioImagePath();
+    res.sendFile(imagePath, (err) => {
+        if (err) {
+            console.error('Erro ao enviar a imagem do cardápio:', err);
+            res.status(500).send('Erro ao carregar a imagem do cardápio.');
+        }
+    });
 });

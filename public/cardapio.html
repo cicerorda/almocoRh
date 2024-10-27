@@ -77,8 +77,8 @@
 <body>
 
     <div class="container" id="appContainer">
-        <h1>Cardápio</h1>
-        <p>Aqui está o conteúdo do cardápio...</p>
+        <h1>Cardápio de Hoje</h1>
+        <p><img id="cardapioImage" alt="Cardápio do Dia"></p>
         <button class="button" onclick="window.location.href='index.html'">Voltar à Página Inicial</button>
     </div>
 
@@ -106,6 +106,19 @@
         if (isMobile()) {
             console.log("Usuário está acessando via dispositivo móvel");
         }
+        // Função para buscar a imagem do cardápio do dia
+        function fetchCardapioImage() {
+            fetch('/api/cardapio/imagem')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById('cardapioImage').src = url;
+                })
+                .catch(error => console.error('Erro ao carregar a imagem do cardápio:', error));
+        }
+
+        // Carrega a imagem quando a página é carregada
+        fetchCardapioImage();
     </script>
 
 </body>
