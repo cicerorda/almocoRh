@@ -268,6 +268,10 @@ function getCardapioImagePath() {
 // Rota para servir a imagem do cardápio
 app.get('/api/cardapio/imagem', (req, res) => {
     const imagePath = getCardapioImagePath();
+    
+    // Define cabeçalho para desativar cache
+    res.set('Cache-Control', 'no-store'); 
+
     res.sendFile(imagePath, (err) => {
         if (err) {
             console.error('Erro ao enviar a imagem do cardápio:', err);
