@@ -83,7 +83,7 @@
 <body>
 
     <div class="container" id="appContainer">
-        <p><img id="cardapioImage" alt="Cardápio do Dia"></p>
+        <p><img src="/api/cardapio/imagem?timestamp=<?= Date.now(); ?>" id="cardapioImage" alt="Cardápio do Dia"></p>
         <button class="button" onclick="window.location.href='index.html'">Voltar à Página Inicial</button>
     </div>
 
