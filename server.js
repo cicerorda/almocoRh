@@ -294,15 +294,15 @@ function getCardapioImagePath() {
 
     if (currentDay === 0 || (currentDay === 1 && currentHour < 12)) {
         fileName = 'segunda.jpg';  // Sábado e domingo mostram o cardápio de segunda
-    } else if (currentDay === 1 && currentHour >= 12) {
+    } else if (currentDay === 1 && currentHour >= 13) {
         fileName = 'terça.jpg';
-    } else if (currentDay === 2 && currentHour >= 12) {
+    } else if (currentDay === 2 && currentHour >= 13) {
         fileName = 'quarta.jpg';
-    } else if (currentDay === 3 && currentHour >= 12) {
+    } else if (currentDay === 3 && currentHour >= 13) {
         fileName = 'quinta.jpg';
-    } else if (currentDay === 4 && currentHour >= 12) {
+    } else if (currentDay === 4 && currentHour >= 13) {
         fileName = 'sexta.jpg';
-    } else if (currentDay === 5 && currentHour >= 12) {
+    } else if (currentDay === 5 && currentHour >= 13) {
         fileName = 'segunda.jpg';  // Sexta-feira após 12h já exibe o cardápio de segunda
     } else {
         fileName = `${['segunda', 'terça', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpg`;
