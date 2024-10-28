@@ -14,57 +14,11 @@ const port = process.env.PORT || 8080;
 const csvFilePath = 'pedidos.csv';
 const csvFilePathMensal = 'pedidos_mensal.csv';
 const lastEmailTimestampFile = 'last_email_timestamp.txt';
+const upload = multer({ storage });
 
 app.use(express.static('public'));
 app.use(cors());
 app.use(bodyParser.json());
-
-// Configuração do IMAP para verificação de e-mails
-const emailConfig = {
-    imap: {
-        user: process.env.EMAIL_USER,
-        password: process.env.EMAIL_PASS,
-        host: 'imap.gmail.com',
-        port: 993,
-        tls: true,
-        authTimeout: 3000
-    }
-};
-
-// Função para verificar e baixar imagens do cardápio por e-mail
-async function checkForCardapioEmail() {
-    try {
-        const connection = await imaps.connect(emailConfig);
-        await connection.openBox('INBOX');
-
-        const searchCriteria = ['UNSEEN', ['SUBJECT', 'Atualizar Cardapio']];
-        const fetchOptions = { bodies: [''], markSeen: true };
-
-        const messages = await connection.search(searchCriteria, fetchOptions);
-
-        for (let message of messages) {
-            const all = message.parts.find(part => part.which === '');
-            const parsed = await simpleParser(all.body);
-
-            const diasDaSemana = ['segunda', 'terça', 'quarta', 'quinta', 'sexta'];
-            for (let attachment of parsed.attachments) {
-                const fileName = attachment.filename.toLowerCase().replace(/\.[^/.]+$/, '');
-                
-                if (diasDaSemana.includes(fileName)) {
-                    const filePath = path.join(__dirname, 'public/images/', `${fileName}.jpg`);
-                    fs.writeFileSync(filePath, attachment.content);
-                    console.log(`Imagem ${fileName}.jpg salva com sucesso.`);
-                }
-            }
-        }
-        connection.end();
-    } catch (error) {
-        console.error('Erro ao verificar e-mails:', error);
-    }
-}
-
-// Verificação de e-mails a cada 15 minutos
-setInterval(checkForCardapioEmail, 15 * 60 * 1000);
 
 // Função para salvar cabeçalhos em arquivos CSV
 function checkAndWriteHeader(filePath) {
@@ -279,4 +233,84 @@ app.get('/api/cardapio/imagem', (req, res) => {
         }
     });
 });
+
+// Configuração de sessão
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'chave-secreta',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }  // `secure: true` em produção com HTTPS
+}));
+
+// Middleware para verificar se o usuário está autenticado
+function isAuthenticated(req, res, next) {
+    if (req.session.authenticated) {
+        return next();
+    }
+    res.redirect('/login');
+}
+
+// Configuração do multer para upload
+const uploadDir = path.join(__dirname, 'public', 'images');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+const storage = multer.diskStorage({
+    destination: uploadDir,
+    filename: (req, file, cb) => {
+        const day = file.fieldname;
+        cb(null, `${day}.jpg`);
+    }
+});
+
+// Servir arquivos estáticos da pasta public
+app.use(express.static('public'));
+
+// Rota para a página de login
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Rota de autenticação para login
+app.post('/admin/login', express.urlencoded({ extended: true }), (req, res) => {
+    const { username, password } = req.body;
+
+    // Verificar credenciais (defina essas variáveis de ambiente para produção)
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'senha123';
+
+    if (username === adminUsername && password === adminPassword) {
+        req.session.authenticated = true;
+        res.redirect('/admin/upload');
+    } else {
+        res.send('Usuário ou senha incorretos.');
+    }
+});
+
+// Rota para logout
+app.get('/admin/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/login');
+});
+
+// Rota de upload protegida
+app.get('/admin/upload', isAuthenticated, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Rota para processar o upload das imagens, protegida
+app.post('/admin/upload', isAuthenticated, upload.fields([
+    { name: 'segunda', maxCount: 1 },
+    { name: 'terca', maxCount: 1 },
+    { name: 'quarta', maxCount: 1 },
+    { name: 'quinta', maxCount: 1 },
+    { name: 'sexta', maxCount: 1 }
+]), (req, res) => {
+    res.send('Imagens carregadas com sucesso!');
+});
+
+app.listen(port, () => {
+    console.log(`Servidor rodando na porta ${port}`);
+});
+
 module.exports = { enviarEmailDiario };
