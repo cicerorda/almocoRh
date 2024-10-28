@@ -18,31 +18,82 @@ const csvFilePath = 'pedidos.csv';
 const csvFilePathMensal = 'pedidos_mensal.csv';
 const lastEmailTimestampFile = 'last_email_timestamp.txt';
 
-// Configuração do multer para upload
-const uploadDir = path.join(__dirname, 'public', 'images');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+app.use(express.static('public'));
+app.use(cors());
+app.use(bodyParser.json());
+
+// Configuração de sessão para autenticação
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'chave-secreta',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }  // Use `secure: true` em produção com HTTPS
+}));
+
+// Middleware para autenticação
+function isAuthenticated(req, res, next) {
+    if (req.session.authenticated) {
+        return next();
+    }
+    res.redirect('/login');
 }
 
+// Configuração do multer para upload
 const storage = multer.diskStorage({
-    destination: uploadDir,
+    destination: path.join(__dirname, 'public', 'images'),
     filename: (req, file, cb) => {
-        const daysMap = {
-            'segunda': 'segunda.jpg',
-            'terca': 'terça.jpg',
-            'quarta': 'quarta.jpg',
-            'quinta': 'quinta.jpg',
-            'sexta': 'sexta.jpg'
-        };
-        const fileName = daysMap[file.fieldname];
-        if (!fileName) {
-            return cb(new Error('Nome do campo de arquivo inválido.'));
-        }
-        cb(null, fileName);
+        cb(null, `${file.fieldname}.jpg`);
     }
 });
 
 const upload = multer({ storage });
+
+// Rota de login (visualizar o formulário de login)
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Rota para autenticar login
+app.post('/admin/login', express.urlencoded({ extended: true }), (req, res) => {
+    const { username, password } = req.body;
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'senha123';
+
+    if (username === adminUsername && password === adminPassword) {
+        req.session.authenticated = true;
+        res.redirect('/admin/upload');
+    } else {
+        res.status(401).send('Usuário ou senha incorretos.');
+    }
+});
+
+// Rota de logout
+app.get('/admin/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/login');
+});
+
+// Rota de upload para substituir as imagens dos dias da semana
+app.get('/admin/upload', isAuthenticated, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.post('/admin/upload', isAuthenticated, upload.fields([
+    { name: 'segunda', maxCount: 1 },
+    { name: 'terca', maxCount: 1 },
+    { name: 'quarta', maxCount: 1 },
+    { name: 'quinta', maxCount: 1 },
+    { name: 'sexta', maxCount: 1 }
+]), (req, res) => {
+    res.send('Imagens carregadas com sucesso!');
+    // Após o upload, redirecionar para a página do cardápio
+    res.redirect('/cardapio.html');
+});
+
+// Servir o cardápio para verificação
+app.get('/cardapio.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'cardapio.html'));
+});
 
 // Configurações iniciais
 app.use(express.static('public'));
