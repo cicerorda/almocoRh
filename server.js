@@ -18,17 +18,30 @@ const csvFilePath = 'pedidos.csv';
 const csvFilePathMensal = 'pedidos_mensal.csv';
 const lastEmailTimestampFile = 'last_email_timestamp.txt';
 
-// Configuração do multer para upload de imagens
+// Configuração do multer para upload
 const uploadDir = path.join(__dirname, 'public', 'images');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
     destination: uploadDir,
     filename: (req, file, cb) => {
-        const day = file.fieldname;
-        cb(null, `${day}.jpg`);
+        const daysMap = {
+            'segunda': 'segunda.jpg',
+            'terca': 'terça.jpg',
+            'quarta': 'quarta.jpg',
+            'quinta': 'quinta.jpg',
+            'sexta': 'sexta.jpg'
+        };
+        const fileName = daysMap[file.fieldname];
+        if (!fileName) {
+            return cb(new Error('Nome do campo de arquivo inválido.'));
+        }
+        cb(null, fileName);
     }
 });
+
 const upload = multer({ storage });
 
 // Configurações iniciais
@@ -39,7 +52,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'chave-secreta',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }  // `secure: true` em produção com HTTPS
+    cookie: { secure: true }  // `secure: true` em produção com HTTPS
 }));
 
 // Função de autenticação
@@ -276,11 +289,23 @@ function isAuthenticated(req, res, next) {
 }
 
 
-// Rota para upload de imagens (exemplo)
-app.post('/admin/upload', upload.single('image'), (req, res) => {
-    res.send('Imagem carregada com sucesso!');
+// Rota de upload protegida
+app.get('/admin/upload', isAuthenticated, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
+app.post('/admin/upload', isAuthenticated, upload.fields([
+    { name: 'segunda', maxCount: 1 },
+    { name: 'terca', maxCount: 1 },
+    { name: 'quarta', maxCount: 1 },
+    { name: 'quinta', maxCount: 1 },
+    { name: 'sexta', maxCount: 1 }
+]), (req, res) => {
+    if (!req.files || Object.keys(req.files).length === 0) {
+        return res.status(400).send('Nenhum arquivo foi enviado.');
+    }
+    res.send('Imagens carregadas com sucesso!');
+});
 // Servir arquivos estáticos da pasta public
 app.use(express.static('public'));
 
@@ -294,8 +319,8 @@ app.post('/admin/login', express.urlencoded({ extended: true }), (req, res) => {
     const { username, password } = req.body;
 
     // Verificar credenciais (defina essas variáveis de ambiente para produção)
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'senha123';
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
     if (username === adminUsername && password === adminPassword) {
         req.session.authenticated = true;
