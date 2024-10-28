@@ -38,19 +38,6 @@ function isAuthenticated(req, res, next) {
     res.redirect('/login');
 }
 
-// Configuração do multer para upload
-const storage = multer.diskStorage({
-    destination: path.join(__dirname, 'public', 'images'),
-        filename: (req, file, cb) => {
-        cb(null, `${file.fieldname}.jpg`);
-        }
-});
-
-const upload = multer({ 
-    storage,
-    limits: { fileSize: 5 * 1024 * 1024 } // Limite de 5MB, ajuste conforme necessário
-});
-
 // Rota de login (visualizar o formulário de login)
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -81,16 +68,36 @@ app.get('/admin/upload', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.post('/admin/upload', isAuthenticated, upload.fields([
-    { name: 'segunda', maxCount: 1 },
-    { name: 'terca', maxCount: 1 },
-    { name: 'quarta', maxCount: 1 },
-    { name: 'quinta', maxCount: 1 },
-    { name: 'sexta', maxCount: 1 }
-]), (req, res) => {
-    res.send('Imagens carregadas com sucesso!');
-    // Após o upload, redirecionar para a página do cardápio
-    return res.redirect('/cardapio.html');
+// Configuração do `multer` para salvar na pasta `public/images`
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, 'public/images'));
+    },
+    filename: (req, file, cb) => {
+        const filePath = path.join(__dirname, 'public/images', file.originalname);
+        
+        // Se o arquivo já existir, removê-lo
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);  // Apagar o arquivo existente
+        }
+        
+        cb(null, file.originalname);  // Manter o mesmo nome do arquivo
+    }
+});
+
+const upload = multer({ storage: storage });
+
+// Configuração da pasta `public` para arquivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Rota para o upload dos arquivos
+app.post('/admin/upload', upload.single('segunda'), (req, res) => {
+    if (req.file) {
+        console.log('Arquivo recebido:', req.file);
+        res.status(200).send('Upload realizado com sucesso!');
+    } else {
+        res.status(400).send('Erro no upload do arquivo.');
+    }
 });
 
 // Servir o cardápio para verificação
