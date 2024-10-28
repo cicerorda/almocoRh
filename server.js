@@ -19,30 +19,24 @@ const csvFilePathMensal = 'pedidos_mensal.csv';
 const lastEmailTimestampFile = 'last_email_timestamp.txt';
 
 // Configuração do multer para upload
-const uploadDir = path.join(__dirname, 'public', 'images');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
 const storage = multer.diskStorage({
-    destination: uploadDir,
+    destination: path.join(__dirname, 'public', 'images'),
     filename: (req, file, cb) => {
-        const daysMap = {
-            'segunda': 'segunda.jpg',
-            'terca': 'terça.jpg',
-            'quarta': 'quarta.jpg',
-            'quinta': 'quinta.jpg',
-            'sexta': 'sexta.jpg'
-        };
-        const fileName = daysMap[file.fieldname];
-        if (!fileName) {
-            return cb(new Error('Nome do campo de arquivo inválido.'));
-        }
-        cb(null, fileName);
+        cb(null, `${file.fieldname}.jpg`);
     }
 });
 
 const upload = multer({ storage });
+
+app.post('/admin/upload', isAuthenticated, upload.fields([
+    { name: 'segunda', maxCount: 1 },
+    { name: 'terca', maxCount: 1 },
+    { name: 'quarta', maxCount: 1 },
+    { name: 'quinta', maxCount: 1 },
+    { name: 'sexta', maxCount: 1 }
+]), (req, res) => {
+    res.send('Imagens carregadas com sucesso!');
+});
 
 // Configurações iniciais
 app.use(express.static('public'));
