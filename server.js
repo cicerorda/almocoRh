@@ -41,7 +41,9 @@ function isAuthenticated(req, res, next) {
 // Configuração do multer para upload
 const storage = multer.diskStorage({
     destination: path.join(__dirname, 'public', 'images'),
+    destination: path.join(__dirname, 'public', 'images'),
     filename: (req, file, cb) => {
+        cb(null, `${file.fieldname}.jpg`);
         cb(null, `${file.fieldname}.jpg`);
     }
 });
