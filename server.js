@@ -15,7 +15,6 @@ const port = process.env.PORT || 8080;
 const csvFilePath = 'pedidos.csv';
 const csvFilePathMensal = 'pedidos_mensal.csv';
 const lastEmailTimestampFile = 'last_email_timestamp.txt';
-const upload = multer({ storage });
 
 app.use(express.static('public'));
 app.use(cors());
@@ -28,6 +27,16 @@ function checkAndWriteHeader(filePath) {
         fs.writeFileSync(filePath, header);
     }
 }
+
+// Defina o armazenamento do multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, 'public/images')); // Define a pasta onde os arquivos serão salvos
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname); // Define o nome do arquivo
+    }
+});
 
 checkAndWriteHeader(csvFilePath);
 checkAndWriteHeader(csvFilePathMensal);
@@ -256,12 +265,10 @@ const uploadDir = path.join(__dirname, 'public', 'images');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
-const storage = multer.diskStorage({
-    destination: uploadDir,
-    filename: (req, file, cb) => {
-        const day = file.fieldname;
-        cb(null, `${day}.jpg`);
-    }
+
+// Rota para upload de imagens (exemplo)
+app.post('/admin/upload', upload.single('image'), (req, res) => {
+    res.send('Imagem carregada com sucesso!');
 });
 
 // Servir arquivos estáticos da pasta public
@@ -298,6 +305,8 @@ app.get('/admin/logout', (req, res) => {
 app.get('/admin/upload', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
+
+const upload = multer({ storage });
 
 // Rota para processar o upload das imagens, protegida
 app.post('/admin/upload', isAuthenticated, upload.fields([
