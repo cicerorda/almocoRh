@@ -41,14 +41,15 @@ function isAuthenticated(req, res, next) {
 // Configuração do multer para upload
 const storage = multer.diskStorage({
     destination: path.join(__dirname, 'public', 'images'),
-    destination: path.join(__dirname, 'public', 'images'),
-    filename: (req, file, cb) => {
+        filename: (req, file, cb) => {
         cb(null, `${file.fieldname}.jpg`);
-        cb(null, `${file.fieldname}.jpg`);
-    }
+        }
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 } // Limite de 5MB, ajuste conforme necessário
+});
 
 // Rota de login (visualizar o formulário de login)
 app.get('/login', (req, res) => {
@@ -58,8 +59,8 @@ app.get('/login', (req, res) => {
 // Rota para autenticar login
 app.post('/admin/login', express.urlencoded({ extended: true }), (req, res) => {
     const { username, password } = req.body;
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'senha123';
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
     if (username === adminUsername && password === adminPassword) {
         req.session.authenticated = true;
@@ -89,7 +90,7 @@ app.post('/admin/upload', isAuthenticated, upload.fields([
 ]), (req, res) => {
     res.send('Imagens carregadas com sucesso!');
     // Após o upload, redirecionar para a página do cardápio
-    res.redirect('/cardapio.html');
+    return res.redirect('/cardapio.html');
 });
 
 // Servir o cardápio para verificação
