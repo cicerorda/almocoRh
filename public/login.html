@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login de Administrador</title>
+    <style>
+        /* Estilos gerais */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 300px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* Estilo dos campos de entrada personalizados */
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .input-label {
+            flex: 1;
+            padding: 10px;
+            font-size: 14px;
+            color: #333;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .input-field {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            font-size: 14px;
+            color: #333;
+            background-color: #ffffff;
+            box-sizing: border-box;
+        }
+
+        .button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+
+        .button:hover {
+            background-color: #2980b9;
+        }
+
+        /* Modo escuro */
+        .dark-mode {
+            background-color: #121212;
+            color: #ffffff;
+        }
+
+        .container.dark-mode {
+            background-color: #1e1e1e;
+            color: #ffffff;
+        }
+
+        .button.dark-mode {
+            background-color: #4a90e2;
+        }
+
+        .button.dark-mode:hover {
+            background-color: #357abd;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="appContainer">
+        <h1>Login</h1>
+
+        <!-- Formulário de login -->
+        <form id="loginForm" method="POST" action="/admin/login">
+            <div class="input-group">
+                <input type="text" class="input-field" name="username" placeholder="Usuário" required>
+            </div>
+
+            <div class="input-group">
+                <input type="password" class="input-field" name="password" placeholder="Senha" required>
+            </div>
+
+            <button type="submit" class="button">Entrar</button>
+        </form>
+    </div>
+
+    <script>
+        // Função para verificar se o usuário está no modo escuro
+        function detectDarkMode() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.classList.add('dark-mode');
+                document.getElementById("appContainer").classList.add('dark-mode');
+                document.querySelectorAll('.button').forEach(function(el) {
+                    el.classList.add('dark-mode');
+                });
+            }
+        }
+
+        // Detectar e aplicar o modo escuro
+        detectDarkMode();
+    </script>
+
+</body>
+</html>
