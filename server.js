@@ -29,16 +29,6 @@ function checkAndWriteHeader(filePath) {
     }
 }
 
-// Defina o armazenamento do multer
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, 'public/images')); // Define a pasta onde os arquivos serão salvos
-    },
-    filename: (req, file, cb) => {
-        cb(null, file.originalname); // Define o nome do arquivo
-    }
-});
-
 checkAndWriteHeader(csvFilePath);
 checkAndWriteHeader(csvFilePathMensal);
 
@@ -261,11 +251,18 @@ function isAuthenticated(req, res, next) {
     res.redirect('/login');
 }
 
-// Configuração do multer para upload
+// Configuração do multer para upload de imagens
 const uploadDir = path.join(__dirname, 'public', 'images');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+    destination: uploadDir,
+    filename: (req, file, cb) => {
+        const day = file.fieldname;
+        cb(null, `${day}.jpg`);
+    }
+});
+const upload = multer({ storage });
 
 // Rota para upload de imagens (exemplo)
 app.post('/admin/upload', upload.single('image'), (req, res) => {
@@ -307,7 +304,6 @@ app.get('/admin/upload', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-const upload = multer({ storage });
 
 // Rota para processar o upload das imagens, protegida
 app.post('/admin/upload', isAuthenticated, upload.fields([
