@@ -5,6 +5,7 @@ const cors = require('cors');
 const nodemailer = require('nodemailer');
 const cron = require('node-cron');
 const imaps = require('imap-simple');
+const multer = require('multer');
 const { simpleParser } = require('mailparser');
 const path = require('path');
 require('dotenv').config();
