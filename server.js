@@ -13,13 +13,42 @@ require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 8080;
+
 const csvFilePath = 'pedidos.csv';
 const csvFilePathMensal = 'pedidos_mensal.csv';
 const lastEmailTimestampFile = 'last_email_timestamp.txt';
 
+// Configuração do multer para upload de imagens
+const uploadDir = path.join(__dirname, 'public', 'images');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+    destination: uploadDir,
+    filename: (req, file, cb) => {
+        const day = file.fieldname;
+        cb(null, `${day}.jpg`);
+    }
+});
+const upload = multer({ storage });
+
+// Configurações iniciais
 app.use(express.static('public'));
 app.use(cors());
 app.use(bodyParser.json());
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'chave-secreta',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }  // `secure: true` em produção com HTTPS
+}));
+
+// Função de autenticação
+function isAuthenticated(req, res, next) {
+    if (req.session.authenticated) {
+        return next();
+    }
+    res.redirect('/login');
+}
 
 // Função para salvar cabeçalhos em arquivos CSV
 function checkAndWriteHeader(filePath) {
@@ -187,11 +216,6 @@ cron.schedule('0 10 28-31 * *', () => {
     }
 });
 
-// Inicia o servidor
-app.listen(port, () => {
-    console.log(`Servidor rodando na porta ${port}`);
-});
-
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
@@ -251,18 +275,6 @@ function isAuthenticated(req, res, next) {
     res.redirect('/login');
 }
 
-// Configuração do multer para upload de imagens
-const uploadDir = path.join(__dirname, 'public', 'images');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-    destination: uploadDir,
-    filename: (req, file, cb) => {
-        const day = file.fieldname;
-        cb(null, `${day}.jpg`);
-    }
-});
-const upload = multer({ storage });
 
 // Rota para upload de imagens (exemplo)
 app.post('/admin/upload', upload.single('image'), (req, res) => {
