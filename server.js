@@ -15,7 +15,6 @@ const port = process.env.PORT || 8080;
 const csvFilePath = 'pedidos.csv';
 const csvFilePathMensal = 'pedidos_mensal.csv';
 const lastEmailTimestampFile = 'last_email_timestamp.txt';
-const upload = multer({ storage });
 
 app.use(express.static('public'));
 app.use(cors());
@@ -298,6 +297,8 @@ app.get('/admin/logout', (req, res) => {
 app.get('/admin/upload', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
+
+const upload = multer({ storage });
 
 // Rota para processar o upload das imagens, protegida
 app.post('/admin/upload', isAuthenticated, upload.fields([
