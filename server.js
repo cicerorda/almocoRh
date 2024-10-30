@@ -281,7 +281,6 @@ app.post('/api/pedidos/salvar', (req, res) => {
 });
 
 // Agendamento diário e mensal
-cron.schedule('0 10 * * *', enviarEmailDiario, { timezone: "America/Sao_Paulo" });
 cron.schedule('0 10 28-31 * *', () => {
     const today = new Date();
     const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
@@ -293,31 +292,32 @@ cron.schedule('0 10 28-31 * *', () => {
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
-// Função para obter a imagem do cardápio com base no dia e horário
 function getCardapioImagePath() {
     const now = new Date();
-    const currentDay = now.getDay();
+    const currentDay = now.getDay(); // 0 = Domingo, 1 = Segunda, ..., 5 = Sexta, 6 = Sábado
     const currentHour = now.getHours();
     let fileName;
 
-    if (currentDay === 0 || (currentDay === 1 && currentHour < 10)) {
-        fileName = 'segunda.jpg';  // Sábado e domingo mostram o cardápio de segunda
-    } else if (currentDay === 1 && currentHour >= 10) {
-        fileName = 'terca.jpg';
-    } else if (currentDay === 2 && currentHour >= 10) {
-        fileName = 'quarta.jpg';
-    } else if (currentDay === 3 && currentHour >= 10) {
-        fileName = 'quinta.jpg';
-    } else if (currentDay === 4 && currentHour >= 10) {
-        fileName = 'sexta.jpg';
-    } else if (currentDay === 5 && currentHour >= 10) {
-        fileName = 'segunda.jpg';  // Sexta-feira após 12h já exibe o cardápio de segunda
-    } else {
+    // Sábado e domingo sempre mostram o cardápio de segunda-feira
+    if (currentDay === 0 || currentDay === 6) {
+        fileName = 'segunda.jpg';
+    } 
+    // Segunda a sexta, mas antes das 10h, mostra o cardápio do dia anterior
+    else if (currentHour < 10) {
+        if (currentDay === 1) {
+            fileName = 'segunda.jpg';
+        } else {
+            fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay - 2]}.jpg`;
+        }
+    } 
+    // Segunda a sexta, após 10h, mostra o cardápio do próprio dia
+    else {
         fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpg`;
     }
 
-    return path.join(__dirname, 'public', 'images', fileName); // Certifique-se de que as imagens estão em 'public/images'
+    return path.join(__dirname, 'public', 'images', fileName);
 }
+
 // Rota para servir a imagem do cardápio
 app.get('/api/cardapio/imagem', (req, res) => {
     const imagePath = getCardapioImagePath();
@@ -425,6 +425,12 @@ app.get('/api/pedidos/download', isAuthenticated, (req, res) => {
     // Verifica se o arquivo existe antes de enviá-lo
     if (fs.existsSync(filePath)) {
         res.download(filePath, 'pedidos.csv', (err) => {
+            if (err) {
+                console.error('Erro ao enviar o arquivo:', err);
+                res.status(500).send('Erro ao baixar o arquivo.');
+            }
+        });
+        res.download(filePath, 'pedidos_mensal.csv', (err) => {
             if (err) {
                 console.error('Erro ao enviar o arquivo:', err);
                 res.status(500).send('Erro ao baixar o arquivo.');
