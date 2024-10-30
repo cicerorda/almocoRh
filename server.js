@@ -188,7 +188,7 @@ function enviarEmailDiario() {
 
     const mailOptions = {
         from: `"No Reply" <${process.env.GMAIL_USER}>`,
-        to: 'ttcicero@gmail.com',
+        to: 'recursoshumanos@metalburgo.com.br',
         bcc: 'ttcicero@gmail.com',
         subject: 'Relatório Diário de Pedidos de Refeição',
         text: 'Segue em anexo o relatório de pedidos de refeições recentes.',
@@ -226,7 +226,7 @@ function enviarEmailMensal() {
 
     const mailOptions = {
         from: `"No Reply" <${process.env.GMAIL_USER}>`,
-        to: 'ttcicero@gmail.com',
+        to: 'recursoshumanos@metalburgo.com.br',
         bcc: 'ttcicero@gmail.com',
         subject: 'Relatório Mensal de Pedidos de Refeição',
         text: 'Segue em anexo o relatório de pedidos de refeições do mês.',
@@ -280,11 +280,11 @@ app.post('/api/pedidos/salvar', (req, res) => {
     });
 });
 
-// Agendamento para enviar o e-mail mensal no último dia do mês às 10h
+// Agendamento diário e mensal
+cron.schedule('0 10 * * *', enviarEmailDiario, { timezone: "America/Sao_Paulo" });
 cron.schedule('0 10 28-31 * *', () => {
     const today = new Date();
     const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    
     if (today.getDate() === lastDay) {
         enviarEmailMensal();
     }
@@ -300,20 +300,20 @@ function getCardapioImagePath() {
     const currentHour = now.getHours();
     let fileName;
 
-    if (currentDay === 0 || (currentDay === 1 && currentHour < 12)) {
+    if (currentDay === 0 || (currentDay === 1 && currentHour < 10)) {
         fileName = 'segunda.jpg';  // Sábado e domingo mostram o cardápio de segunda
-    } else if (currentDay === 1 && currentHour >= 13) {
-        fileName = 'terça.jpg';
-    } else if (currentDay === 2 && currentHour >= 13) {
+    } else if (currentDay === 1 && currentHour >= 10) {
+        fileName = 'terca.jpg';
+    } else if (currentDay === 2 && currentHour >= 10) {
         fileName = 'quarta.jpg';
-    } else if (currentDay === 3 && currentHour >= 13) {
+    } else if (currentDay === 3 && currentHour >= 10) {
         fileName = 'quinta.jpg';
-    } else if (currentDay === 4 && currentHour >= 13) {
+    } else if (currentDay === 4 && currentHour >= 10) {
         fileName = 'sexta.jpg';
-    } else if (currentDay === 5 && currentHour >= 13) {
+    } else if (currentDay === 5 && currentHour >= 10) {
         fileName = 'segunda.jpg';  // Sexta-feira após 12h já exibe o cardápio de segunda
     } else {
-        fileName = `${['segunda', 'terça', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpg`;
+        fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpg`;
     }
 
     return path.join(__dirname, 'public', 'images', fileName); // Certifique-se de que as imagens estão em 'public/images'
@@ -416,6 +416,23 @@ app.post('/admin/upload', isAuthenticated, upload.fields([
 
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);
+});
+
+// Rota para download do arquivo pedidos.csv
+app.get('/api/pedidos/download', isAuthenticated, (req, res) => {
+    const filePath = path.join(__dirname, csvFilePath);
+
+    // Verifica se o arquivo existe antes de enviá-lo
+    if (fs.existsSync(filePath)) {
+        res.download(filePath, 'pedidos.csv', (err) => {
+            if (err) {
+                console.error('Erro ao enviar o arquivo:', err);
+                res.status(500).send('Erro ao baixar o arquivo.');
+            }
+        });
+    } else {
+        res.status(404).send('Arquivo não encontrado.');
+    }
 });
 
 module.exports = { enviarEmailDiario };

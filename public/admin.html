@@ -128,6 +128,7 @@
                 </label>
             </div>
             <button type="submit" class="button">Enviar Imagens</button>
+            <button id="downloadCSV">Baixar CSV</button>
         </form>
 
         <button class="button" onclick="window.location.href='/login'">Logout</button>
@@ -153,6 +154,26 @@
 
         // Detectar e aplicar o modo escuro
         detectDarkMode();
+
+        document.getElementById("downloadCSV").addEventListener("click", function() {
+            fetch('/api/pedidos/download')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao baixar o arquivo');
+                }
+                return response.blob(); // Converte a resposta para um blob (arquivo binário)
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'pedidos.csv'; // Nome do arquivo a ser baixado
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            })
+            .catch(error => console.error('Erro ao baixar o CSV:', error));
+        });
     </script>
 
 </body>
