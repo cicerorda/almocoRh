@@ -234,6 +234,9 @@
                     document.getElementById(field).value = localStorage.getItem(field);
                 }
             });
+
+            loadEmpresaOptions(); // Carregar as opções de empresa ao carregar a página
+
         });
 
         // Limpar dados do formulário e do localStorage após o envio
@@ -250,6 +253,9 @@
                 observacoes: document.getElementById("observacoes").value
             };
 
+            // Salvar a nova empresa no localStorage, se não existir
+            saveEmpresa(pedido.empresa);
+
             fetch('/api/pedidos/salvar', {
                 method: 'POST',
                 headers: {
@@ -262,9 +268,30 @@
                 alert(data.message);
                 formFields.forEach(field => localStorage.removeItem(field)); // Limpa localStorage
                 document.getElementById("pedidoForm").reset(); // Limpa o formulário
+                loadEmpresaOptions(); // Atualiza as opções de empresa
             })
             .catch(error => console.error('Erro:', error));
         });
+
+        // Função para salvar nova empresa no localStorage (sem duplicar)
+        function saveEmpresa(empresa) {
+            let empresas = JSON.parse(localStorage.getItem("empresas") || "[]");
+            if (!empresas.includes(empresa)) { // Adiciona apenas se não existir
+                empresas.push(empresa);
+                localStorage.setItem("empresas", JSON.stringify(empresas));
+            }
+        }
+
+        // Função para carregar as opções de empresa
+        function loadEmpresaOptions() {
+            const empresaList = document.getElementById("empresaList");
+            empresaList.innerHTML = ""; // Limpa as opções existentes
+            const empresas = JSON.parse(localStorage.getItem("empresas") || "[]");
+            empresas.forEach(empresa => {
+                const option = document.createElement("option");
+                option.value = empresa;
+                empresaList.appendChild(option);
+            });
 
         // Função para apagar o CSV
         document.getElementById("deleteCSV").addEventListener("click", function() {
@@ -306,6 +333,7 @@
             })
             .catch(error => console.error('Erro ao baixar o CSV:', error));
         });
+    }
     </script>
 
 </body>
