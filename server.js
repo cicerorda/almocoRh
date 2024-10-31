@@ -281,7 +281,8 @@ app.post('/api/pedidos/salvar', (req, res) => {
 });
 
 // Agendamento diário e mensal
-cron.schedule('0 10 28-31 * *', () => {
+cron.schedule('0 10 * * *', enviarEmailDiario, { timezone: "America/Sao_Paulo" });
+cron.schedule('0 1 1 * *', () => {
     const today = new Date();
     const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
     if (today.getDate() === lastDay) {
@@ -303,7 +304,7 @@ function getCardapioImagePath() {
         fileName = 'segunda.jpg';
     } 
     // Segunda a sexta, mas antes das 10h, mostra o cardápio do dia anterior
-    else if (currentHour < 10) {
+    else if (currentHour < 13) {
         if (currentDay === 1) {
             fileName = 'segunda.jpg';
         } else {
