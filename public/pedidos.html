@@ -219,7 +219,24 @@
             console.log("Usuário está acessando via dispositivo móvel");
         }
 
-        // Função para envio do formulário
+        // Função para salvar dados no localStorage sempre que um campo mudar
+        const formFields = ["nome", "empresa", "almoco", "salada", "sobremesa", "porcao", "observacoes"];
+        formFields.forEach(field => {
+            document.getElementById(field).addEventListener("input", () => {
+                localStorage.setItem(field, document.getElementById(field).value);
+            });
+        });
+
+        // Carregar dados salvos do localStorage ao carregar a página
+        window.addEventListener("load", () => {
+            formFields.forEach(field => {
+                if (localStorage.getItem(field)) {
+                    document.getElementById(field).value = localStorage.getItem(field);
+                }
+            });
+        });
+
+        // Limpar dados do formulário e do localStorage após o envio
         document.getElementById("pedidoForm").addEventListener("submit", function(event) {
             event.preventDefault();
 
@@ -243,7 +260,8 @@
             .then(response => response.json())
             .then(data => {
                 alert(data.message);
-                document.getElementById("pedidoForm").reset(); // Limpa o formulário após salvar
+                formFields.forEach(field => localStorage.removeItem(field)); // Limpa localStorage
+                document.getElementById("pedidoForm").reset(); // Limpa o formulário
             })
             .catch(error => console.error('Erro:', error));
         });

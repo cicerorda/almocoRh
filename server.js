@@ -307,7 +307,7 @@ function getCardapioImagePath() {
         if (currentDay === 1) {
             fileName = 'segunda.jpg';
         } else {
-            fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay - 2]}.jpg`;
+            fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpg`;
         }
     } 
     // Segunda a sexta, após 10h, mostra o cardápio do próprio dia
