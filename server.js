@@ -281,7 +281,10 @@ app.post('/api/pedidos/salvar', (req, res) => {
 });
 
 // Agendamento diário e mensal
-cron.schedule('0 10 * * *', enviarEmailDiario, { timezone: "America/Sao_Paulo" });
+cron.schedule('0 10 * * 1-5', enviarEmailDiario, {
+    timezone: "America/Sao_Paulo"
+});
+
 cron.schedule('0 1 1 * *', () => {
     const today = new Date();
     const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
