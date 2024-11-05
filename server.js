@@ -127,7 +127,7 @@ function isAuthenticated(req, res, next) {
 // Função para salvar cabeçalhos em arquivos CSV
 function checkAndWriteHeader(filePath) {
     if (!fs.existsSync(filePath)) {
-        const header = 'nome;empresa;almoco;salada;sobremesa;porcao;observacoes;data_hora\n';
+        const header = 'nome;empresa;almoco;salada;sobremesa;porcao;carneExtra;observacoes;data_hora\n';
         fs.writeFileSync(filePath, header);
     }
 }
@@ -251,16 +251,16 @@ function enviarEmailMensal() {
 
 // Função para limpar o conteúdo de um arquivo CSV
 function clearCSV(filePath) {
-    const header = 'nome;empresa;almoco;salada;sobremesa;porcao;observacoes;data_hora\n';
+    const header = 'nome;empresa;almoco;salada;sobremesa;porcao;carneExtra;observacoes;data_hora\n';
     fs.writeFileSync(filePath, header);
 }
 
 // Rota para salvar o pedido no CSV com data e hora
 app.post('/api/pedidos/salvar', (req, res) => {
-    const { nome, empresa, almoco, salada, sobremesa, porcao, observacoes } = req.body;
+    const { nome, empresa, almoco, salada, sobremesa, porcao, carneExtra, observacoes } = req.body;
     const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
-    const novoPedido = `${nome};${empresa};${almoco};${salada};${sobremesa};${porcao};${observacoes};${dataHora}\n`;
+    const novoPedido = `${nome};${empresa};${almoco};${salada};${sobremesa};${porcao};${carneExtra};${observacoes};${dataHora}\n`;
 
     // Salva no CSV diário
     fs.appendFile(csvFilePath, novoPedido, (err) => {
@@ -316,11 +316,7 @@ function getCardapioImagePath() {
     } 
     // Segunda a sexta, após 10h, mostra o cardápio do próprio dia
     else {
-<<<<<<<<< Temporary merge branch 1
-        fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpeg`;
-=========
         fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay]}.jpeg`;
->>>>>>>>> Temporary merge branch 2
     }
 
     return path.join(__dirname, 'public', 'images', fileName);
