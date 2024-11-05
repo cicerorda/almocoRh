@@ -304,19 +304,19 @@ function getCardapioImagePath() {
 
     // Sábado e domingo sempre mostram o cardápio de segunda-feira
     if (currentDay === 0 || currentDay === 6) {
-        fileName = 'segunda.jpg';
+        fileName = 'segunda.jpeg';
     } 
     // Segunda a sexta, mas antes das 10h, mostra o cardápio do dia anterior
     else if (currentHour < 13) {
         if (currentDay === 1) {
-            fileName = 'segunda.jpg';
+            fileName = 'segunda.jpeg';
         } else {
-            fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpg`;
+            fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpeg`;
         }
     } 
     // Segunda a sexta, após 10h, mostra o cardápio do próprio dia
     else {
-        fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpg`;
+        fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay]}.jpeg`;
     }
 
     return path.join(__dirname, 'public', 'images', fileName);
