@@ -316,11 +316,7 @@ function getCardapioImagePath() {
     } 
     // Segunda a sexta, após 10h, mostra o cardápio do próprio dia
     else {
-<<<<<<<<< Temporary merge branch 1
-        fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay - 1]}.jpeg`;
-=========
         fileName = `${['segunda', 'terca', 'quarta', 'quinta', 'sexta'][currentDay]}.jpeg`;
->>>>>>>>> Temporary merge branch 2
     }
 
     return path.join(__dirname, 'public', 'images', fileName);
