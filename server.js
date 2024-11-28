@@ -9,6 +9,7 @@ const session = require('express-session'); // Corrigido: importa o `express-ses
 const multer = require('multer');
 const { simpleParser } = require('mailparser');
 const path = require('path');
+const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
@@ -21,6 +22,39 @@ const lastEmailTimestampFile = 'last_email_timestamp.txt';
 app.use(express.static('public'));
 app.use(cors());
 app.use(bodyParser.json());
+
+// Configuração da conexão com o banco de dados
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
+
+// Função para inicializar a tabela (executar uma vez)
+async function initializeDatabase() {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS pedidos (
+                id SERIAL PRIMARY KEY,
+                nome TEXT,
+                empresa TEXT,
+                almoco TEXT,
+                salada TEXT,
+                sobremesa TEXT,
+                porcao TEXT,
+                carneExtra TEXT,
+                observacoes TEXT,
+                data_hora TIMESTAMP
+            );
+        `);
+        console.log('Tabela "pedidos" criada ou já existente.');
+    } catch (err) {
+        console.error('Erro ao inicializar o banco de dados:', err);
+    }
+}
+
+initializeDatabase();
 
 // Configuração de sessão para autenticação
 app.use(session({
@@ -148,29 +182,17 @@ function updateLastEmailTimestamp() {
     fs.writeFileSync(lastEmailTimestampFile, currentTimestamp);
 }
 
-// Função para obter pedidos recentes ou todo o CSV
-function getRecentOrders() {
-    const lastEmailTimestamp = getLastEmailTimestamp();
-    const lines = fs.readFileSync(csvFilePath, 'utf8').split('\n');
-    const recentOrders = [lines[0]];
-
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        const fields = line.split(';');
-        const orderTimestamp = new Date(fields[7]);
-
-        if (orderTimestamp > lastEmailTimestamp) {
-            recentOrders.push(line);
-        }
-    }
-
-    if (recentOrders.length > 1) {
-        return recentOrders.join('\n');
-    } else {
-        console.log("Nenhum pedido recente encontrado. Enviando todo o CSV diário.");
-        return fs.readFileSync(csvFilePath, 'utf8');
+async function getRecentOrders() {
+    try {
+        const lastEmailTimestamp = getLastEmailTimestamp();
+        const result = await pool.query(
+            `SELECT * FROM pedidos WHERE data_hora > $1 ORDER BY data_hora ASC`,
+            [lastEmailTimestamp]
+        );
+        return result.rows;
+    } catch (err) {
+        console.error('Erro ao buscar pedidos recentes:', err);
+        return [];
     }
 }
 
@@ -255,29 +277,31 @@ function clearCSV(filePath) {
     fs.writeFileSync(filePath, header);
 }
 
-// Rota para salvar o pedido no CSV com data e hora
-app.post('/api/pedidos/salvar', (req, res) => {
+app.post('/api/pedidos/salvar', async (req, res) => {
     const { nome, empresa, almoco, salada, sobremesa, porcao, carneExtra, observacoes } = req.body;
-    const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const dataHora = new Date();
 
-    const novoPedido = `${nome};${empresa};${almoco};${salada};${sobremesa};${porcao};${carneExtra};${observacoes};${dataHora}\n`;
-
-    // Salva no CSV diário
-    fs.appendFile(csvFilePath, novoPedido, (err) => {
-        if (err) {
-            console.error('Erro ao salvar o pedido no CSV diário:', err);
-            return res.status(500).json({ message: 'Erro ao salvar o pedido' });
-        }
-    });
-
-    // Salva no CSV mensal
-    fs.appendFile(csvFilePathMensal, novoPedido, (err) => {
-        if (err) {
-            console.error('Erro ao salvar no arquivo mensal:', err);
-            return res.status(500).json({ message: 'Erro ao salvar no arquivo mensal' });
-        }
+    try {
+        await pool.query(
+            `INSERT INTO pedidos (nome, empresa, almoco, salada, sobremesa, porcao, carneExtra, observacoes, data_hora)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            [nome, empresa, almoco, salada, sobremesa, porcao, carneExtra, observacoes, dataHora]
+        );
         res.json({ message: 'Pedido salvo com sucesso!' });
-    });
+    } catch (err) {
+        console.error('Erro ao salvar pedido:', err);
+        res.status(500).json({ message: 'Erro ao salvar o pedido.' });
+    }
+});
+
+app.get('/api/pedidos', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM pedidos ORDER BY data_hora DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Erro ao buscar pedidos:', err);
+        res.status(500).json({ message: 'Erro ao buscar os pedidos.' });
+    }
 });
 
 // Agendamento diário e mensal
