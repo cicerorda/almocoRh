@@ -210,7 +210,7 @@ async function getRecentOrders() {
 app.post('/api/pedidos/enviar-email', async (req, res) => {
     try {
         console.log("Solicitação recebida para enviar e-mail.");
-        await enviarEmailDiario(); // Função que processa e envia o e-mail
+        await enviarEmailMensal(); // Função que processa e envia o e-mail
         res.json({ message: 'E-mail enviado com sucesso!' });
     } catch (error) {
         console.error("Erro ao enviar e-mail:", error);
