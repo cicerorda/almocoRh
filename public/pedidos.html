@@ -245,6 +245,8 @@
 
         });
 
+
+        
         // Limpar dados do formulário e do localStorage após o envio
         document.getElementById("pedidoForm").addEventListener("submit", function(event) {
             event.preventDefault();
@@ -314,23 +316,23 @@
 
         // Envio de e-mail
         document.getElementById("sendEmail").addEventListener("click", function() {
-    fetch('/api/pedidos/enviar-email', {
-        method: 'POST' // Certifique-se de que o método POST é usado
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Erro ao enviar o e-mail.');
-        }
-        return response.json();
-    })
-    .then(data => {
-        alert(data.message || 'E-mail enviado com sucesso!');
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao enviar o e-mail. Verifique os logs do servidor.');
-    });
-});
+            fetch('/api/pedidos/enviar-email', {
+                method: 'POST'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao enviar o e-mail.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message || 'E-mail enviado com sucesso!');
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao enviar o e-mail. Verifique os logs do servidor.');
+            });
+        }); 
 
         document.getElementById("downloadCSV").addEventListener("click", function() {
             fetch('/api/pedidos/download')
