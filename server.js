@@ -184,12 +184,19 @@ function updateLastEmailTimestamp() {
 
 async function getRecentOrders() {
     try {
-        const lastEmailTimestamp = getLastEmailTimestamp();
+        // Obter a data e horário de 10h do dia anterior (horário de Brasília)
+        const now = new Date();
+        const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 10, 0, 0); // 10h de ontem
+        const brazilTimeOffset = -3; // UTC-3 para horário de Brasília
+        yesterday.setHours(yesterday.getHours() - brazilTimeOffset);
+
+        // Consultar pedidos feitos desde 10h de ontem
         const result = await pool.query(
-            `SELECT * FROM pedidos WHERE data_hora > $1 ORDER BY data_hora ASC`,
-            [lastEmailTimestamp]
+            `SELECT * FROM pedidos WHERE data_hora >= $1 ORDER BY data_hora ASC`,
+            [yesterday]
         );
 
+        // Formatar os pedidos em formato CSV
         return result.rows.map(row =>
             `${row.nome};${row.empresa};${row.almoco};${row.salada};${row.sobremesa};${row.porcao};${row.carneextra || ''};${row.observacoes || ''};${row.data_hora.toISOString()}`
         ).join('\n');
@@ -200,56 +207,56 @@ async function getRecentOrders() {
 }
 
 
-async function enviarEmailDiario() {
-    const recentOrdersCSV = await getRecentOrders();
-
-    if (!recentOrdersCSV) {
-        console.log('Nenhum pedido recente para enviar.');
-        return;
-    }
-
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_PASS
-        }
-    });
-
-    const mailOptions = {
-        from: `"No Reply" <${process.env.GMAIL_USER}>`,
-        to: 'ttcicero@gmail.com',
-        bcc: 'ttcicero@gmail.com',
-        subject: 'Relatório Diário de Pedidos de Refeição',
-        text: 'Segue em anexo o relatório de pedidos de refeições recentes.',
-        attachments: [
-            {
-                filename: 'pedidos_diarios.csv',
-                content: `nome;empresa;almoco;salada;sobremesa;porcao;carneExtra;observacoes;data_hora\n${recentOrdersCSV}`,
-                type: 'text/csv'
-            }
-        ]
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            console.error('Erro ao enviar e-mail:', error);
-        } else {
-            console.log('E-mail enviado com sucesso:', info.response);
-            updateLastEmailTimestamp();
-        }
-    });
-}
-
 app.post('/api/pedidos/enviar-email', async (req, res) => {
     try {
-        await enviarEmailDiario(); // Reutiliza a função existente
+        await enviarEmailDiario();
         res.json({ message: 'E-mail diário enviado com sucesso!' });
     } catch (error) {
         console.error('Erro ao enviar e-mail diário:', error);
         res.status(500).json({ message: 'Erro ao enviar e-mail diário.' });
     }
 });
+
+async function enviarEmailDiario() {
+    try {
+        const recentOrdersCSV = await getRecentOrders();
+
+        if (!recentOrdersCSV) {
+            console.log('Nenhum pedido recente para enviar.');
+            return;
+        }
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.GMAIL_USER,
+                pass: process.env.GMAIL_PASS
+            }
+        });
+
+        const mailOptions = {
+            from: `"No Reply" <${process.env.GMAIL_USER}>`,
+            to: 'ttcicero@gmail.com',
+            bcc: 'ttcicero@gmail.com',
+            subject: 'Relatório Diário de Pedidos de Refeição',
+            text: 'Segue em anexo o relatório de pedidos de refeições recentes.',
+            attachments: [
+                {
+                    filename: 'pedidos_diarios.csv',
+                    content: `nome;empresa;almoco;salada;sobremesa;porcao;carneExtra;observacoes;data_hora\n${recentOrdersCSV}`,
+                    type: 'text/csv'
+                }
+            ]
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('E-mail enviado com sucesso:', info.response);
+        updateLastEmailTimestamp();
+    } catch (error) {
+        console.error('Erro ao enviar e-mail diário:', error);
+    }
+}
+
 
 // Função para enviar e-mail mensal e limpar o arquivo CSV mensal
 async function enviarEmailMensal() {
