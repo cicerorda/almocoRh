@@ -237,7 +237,7 @@ async function enviarEmailDiario() {
         const mailOptions = {
             from: `"No Reply" <${process.env.GMAIL_USER}>`,
             to: 'ttcicero@gmail.com',
-            bcc: 'ttcicero@gmail.com',
+            // bcc: 'ttcicero@gmail.com',
             subject: 'Relatório Diário de Pedidos de Refeição',
             text: 'Segue em anexo o relatório de pedidos de refeições recentes.',
             attachments: [
@@ -277,7 +277,7 @@ async function enviarEmailMensal() {
         const mailOptions = {
             from: `"No Reply" <${process.env.GMAIL_USER}>`,
             to: 'ttcicero@gmail.com',
-            bcc: 'ttcicero@gmail.com',
+            // bcc: 'ttcicero@gmail.com',
             subject: 'Relatório Mensal de Pedidos de Refeição',
             text: 'Segue em anexo o relatório de pedidos de refeições do mês.',
             attachments: [
