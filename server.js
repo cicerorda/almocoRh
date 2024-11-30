@@ -189,16 +189,24 @@ async function getRecentOrders() {
             `SELECT * FROM pedidos WHERE data_hora > $1 ORDER BY data_hora ASC`,
             [lastEmailTimestamp]
         );
-        return result.rows;
+
+        return result.rows.map(row =>
+            `${row.nome};${row.empresa};${row.almoco};${row.salada};${row.sobremesa};${row.porcao};${row.carneextra || ''};${row.observacoes || ''};${row.data_hora.toISOString()}`
+        ).join('\n');
     } catch (err) {
         console.error('Erro ao buscar pedidos recentes:', err);
-        return [];
+        return '';
     }
 }
 
-// Função para enviar e-mail diário e limpar o arquivo CSV
-function enviarEmailDiario() {
-    const recentOrdersCSV = getRecentOrders();
+
+async function enviarEmailDiario() {
+    const recentOrdersCSV = await getRecentOrders();
+
+    if (!recentOrdersCSV) {
+        console.log('Nenhum pedido recente para enviar.');
+        return;
+    }
 
     const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -210,14 +218,14 @@ function enviarEmailDiario() {
 
     const mailOptions = {
         from: `"No Reply" <${process.env.GMAIL_USER}>`,
-        to: 'recursoshumanos@metalburgo.com.br',
+        to: 'ttcicero@gmail.com',
         bcc: 'ttcicero@gmail.com',
         subject: 'Relatório Diário de Pedidos de Refeição',
         text: 'Segue em anexo o relatório de pedidos de refeições recentes.',
         attachments: [
             {
-                filename: 'pedidos.csv',
-                content: recentOrdersCSV,
+                filename: 'pedidos_diarios.csv',
+                content: `nome;empresa;almoco;salada;sobremesa;porcao;carneExtra;observacoes;data_hora\n${recentOrdersCSV}`,
                 type: 'text/csv'
             }
         ]
@@ -229,47 +237,63 @@ function enviarEmailDiario() {
         } else {
             console.log('E-mail enviado com sucesso:', info.response);
             updateLastEmailTimestamp();
-            clearCSV(csvFilePath);
         }
     });
 }
+
+app.post('/api/pedidos/enviar-email', async (req, res) => {
+    try {
+        await enviarEmailDiario(); // Reutiliza a função existente
+        res.json({ message: 'E-mail diário enviado com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao enviar e-mail diário:', error);
+        res.status(500).json({ message: 'Erro ao enviar e-mail diário.' });
+    }
+});
 
 // Função para enviar e-mail mensal e limpar o arquivo CSV mensal
-function enviarEmailMensal() {
-    const pedidosMensal = fs.readFileSync(csvFilePathMensal, 'utf8');
+async function enviarEmailMensal() {
+    try {
+        const result = await pool.query('SELECT * FROM pedidos ORDER BY data_hora ASC');
+        const pedidosMensal = result.rows.map(row =>
+            `${row.nome};${row.empresa};${row.almoco};${row.salada};${row.sobremesa};${row.porcao};${row.carneextra || ''};${row.observacoes || ''};${row.data_hora.toISOString()}`
+        ).join('\n');
 
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_PASS
-        }
-    });
-
-    const mailOptions = {
-        from: `"No Reply" <${process.env.GMAIL_USER}>`,
-        to: 'recursoshumanos@metalburgo.com.br',
-        bcc: 'ttcicero@gmail.com',
-        subject: 'Relatório Mensal de Pedidos de Refeição',
-        text: 'Segue em anexo o relatório de pedidos de refeições do mês.',
-        attachments: [
-            {
-                filename: 'pedidos_mensal.csv',
-                content: pedidosMensal,
-                type: 'text/csv'
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.GMAIL_USER,
+                pass: process.env.GMAIL_PASS
             }
-        ]
-    };
+        });
 
-    transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            console.error('Erro ao enviar e-mail mensal:', error);
-        } else {
-            console.log('E-mail mensal enviado com sucesso:', info.response);
-            clearCSV(csvFilePathMensal);
-        }
-    });
+        const mailOptions = {
+            from: `"No Reply" <${process.env.GMAIL_USER}>`,
+            to: 'ttcicero@gmail.com',
+            bcc: 'ttcicero@gmail.com',
+            subject: 'Relatório Mensal de Pedidos de Refeição',
+            text: 'Segue em anexo o relatório de pedidos de refeições do mês.',
+            attachments: [
+                {
+                    filename: 'pedidos_mensais.csv',
+                    content: `nome;empresa;almoco;salada;sobremesa;porcao;carneExtra;observacoes;data_hora\n${pedidosMensal}`,
+                    type: 'text/csv'
+                }
+            ]
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Erro ao enviar e-mail mensal:', error);
+            } else {
+                console.log('E-mail mensal enviado com sucesso:', info.response);
+            }
+        });
+    } catch (err) {
+        console.error('Erro ao buscar pedidos para o e-mail mensal:', err);
+    }
 }
+
 
 // Função para limpar o conteúdo de um arquivo CSV
 function clearCSV(filePath) {
