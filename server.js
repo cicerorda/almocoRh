@@ -218,8 +218,6 @@ async function getRecentOrders() {
     }
 }
 
-const fs = require('fs');
-
 async function generateSummaryCSV() {
     try {
         // Consulta os dados do banco de dados
