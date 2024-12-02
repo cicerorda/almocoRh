@@ -218,6 +218,37 @@ async function getRecentOrders() {
     }
 }
 
+const fs = require('fs');
+
+async function generateSummaryCSV() {
+    try {
+        // Consulta os dados do banco de dados
+        const result = await pool.query(`
+            SELECT nome, COUNT(*) AS pedidos_count, COALESCE(SUM(CAST(carneextra AS INTEGER)), 0) AS carneextra_total
+            FROM pedidos
+            GROUP BY nome
+            ORDER BY pedidos_count DESC;
+        `);
+
+        // Formata os resultados em formato CSV
+        const csvHeader = 'nome;quantidade_pedidos;carneextra_total\n';
+        const csvContent = result.rows.map(row => 
+            `${row.nome};${row.pedidos_count};${row.carneextra_total}`
+        ).join('\n');
+
+        const finalCSV = csvHeader + csvContent;
+
+        // Salva o CSV no sistema de arquivos ou retorna o conteúdo
+        const filePath = 'summary_pedidos.csv';
+        fs.writeFileSync(filePath, finalCSV);
+
+        console.log(`Resumo gerado com sucesso: ${filePath}`);
+        return filePath; // Opcional, para usar em e-mails ou outros usos
+    } catch (err) {
+        console.error('Erro ao gerar resumo de pedidos:', err);
+    }
+}
+
 app.post('/api/pedidos/enviar-email', async (req, res) => {
     try {
         console.log("Solicitação recebida para enviar e-mail.");
@@ -309,6 +340,11 @@ async function enviarEmailMensal() {
                     filename: 'pedidos_mensais.csv',
                     content: `nome;empresa;almoco;salada;sobremesa;porcao;carneExtra;observacoes;data_hora\n${pedidosMensal}`,
                     type: 'text/csv'
+                },
+                {
+                    filename: 'summary_pedidos.csv',
+                    path: filePathResumo, // Caminho do arquivo de resumo
+                    type: 'text/csv'
                 }
             ]
         };
@@ -360,7 +396,7 @@ app.get('/api/pedidos', async (req, res) => {
 });
 
 // Agendamento diário e mensal
-cron.schedule('0 10 * * 1-5', enviarEmailDiario, {
+cron.schedule('35 9 * * 1-5', enviarEmailDiario, {
     timezone: "America/Sao_Paulo"
 });
 
