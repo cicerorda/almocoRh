@@ -184,14 +184,28 @@ function updateLastEmailTimestamp() {
 
 async function getRecentOrders() {
     try {
-        // Obter a data e horário de 10h do dia anterior (horário de Brasília)
+        // Obter a data e horário atual
         const now = new Date();
-        const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 10, 0, 0); // 10h de ontem
-        
-        // Consultar pedidos feitos desde 10h de ontem
+
+        // Calcular a data inicial
+        let startDate;
+        if (now.getDay() === 1) { // Segunda-feira (0 = Domingo, 1 = Segunda, ..., 6 = Sábado)
+            // Se for segunda-feira, pegar sexta-feira às 10h
+            const friday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3, 10, 0, 0); // Sexta-feira
+            startDate = friday;
+        } else {
+            // Para outros dias, pegar o dia anterior às 10h
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 10, 0, 0); // 10h de ontem
+        }
+
+        // Ajustar o horário para UTC (caso necessário)
+        const brazilTimeOffset = -3; // UTC-3 para horário de Brasília
+        startDate.setHours(startDate.getHours() - brazilTimeOffset);
+
+        // Consultar pedidos feitos desde a data inicial calculada
         const result = await pool.query(
             `SELECT * FROM pedidos WHERE data_hora >= $1 ORDER BY data_hora ASC`,
-            [yesterday]
+            [startDate]
         );
 
         // Formatar os pedidos em formato CSV
@@ -203,7 +217,6 @@ async function getRecentOrders() {
         return '';
     }
 }
-
 
 app.post('/api/pedidos/enviar-email', async (req, res) => {
     try {
