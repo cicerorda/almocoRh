@@ -314,6 +314,9 @@ async function enviarEmailDiario() {
 // Função para enviar e-mail mensal e limpar o arquivo CSV mensal
 async function enviarEmailMensal() {
     try {
+        // Gerar o arquivo de resumo antes de enviar o e-mail
+        const filePathResumo = await generateSummaryCSV();
+
         const result = await pool.query('SELECT * FROM pedidos ORDER BY data_hora ASC');
         const summaryCSVContent = fs.readFileSync('summary_pedidos.csv', 'utf-8');
         const pedidosMensal = result.rows.map(row =>
