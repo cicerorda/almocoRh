@@ -187,9 +187,7 @@ async function getRecentOrders() {
         // Obter a data e horário de 10h do dia anterior (horário de Brasília)
         const now = new Date();
         const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 10, 0, 0); // 10h de ontem
-        const brazilTimeOffset = -3; // UTC-3 para horário de Brasília
-        yesterday.setHours(yesterday.getHours() - brazilTimeOffset);
-
+        
         // Consultar pedidos feitos desde 10h de ontem
         const result = await pool.query(
             `SELECT * FROM pedidos WHERE data_hora >= $1 ORDER BY data_hora ASC`,
@@ -210,6 +208,17 @@ async function getRecentOrders() {
 app.post('/api/pedidos/enviar-email', async (req, res) => {
     try {
         console.log("Solicitação recebida para enviar e-mail.");
+        await enviarEmailDiario(); // Função que processa e envia o e-mail
+        res.json({ message: 'E-mail enviado com sucesso!' });
+    } catch (error) {
+        console.error("Erro ao enviar e-mail:", error);
+        res.status(500).json({ message: 'Erro ao enviar e-mail.' });
+    }
+});
+
+app.post('/api/pedidos/enviar-email-mensal', async (req, res) => {
+    try {
+        console.log("Solicitação recebida para enviar e-mail.");
         await enviarEmailMensal(); // Função que processa e envia o e-mail
         res.json({ message: 'E-mail enviado com sucesso!' });
     } catch (error) {
@@ -218,7 +227,7 @@ app.post('/api/pedidos/enviar-email', async (req, res) => {
     }
 });
 
-
+// Função para enviar e-mail diario
 async function enviarEmailDiario() {
     try {
         const recentOrdersCSV = await getRecentOrders();
