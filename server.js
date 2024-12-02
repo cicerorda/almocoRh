@@ -222,7 +222,12 @@ async function generateSummaryCSV() {
     try {
         // Consulta os dados do banco de dados
         const result = await pool.query(`
-            SELECT nome, COUNT(*) AS pedidos_count, COALESCE(SUM(CAST(carneextra AS INTEGER)), 0) AS carneextra_total
+            SELECT 
+                nome, 
+                COUNT(*) AS pedidos_count, 
+                COALESCE(SUM(CASE 
+                    WHEN carneExtra ~ '^[0-9]+$' THEN CAST(carneExtra AS INTEGER) 
+                    ELSE 0 END), 0) AS carneextra_total
             FROM pedidos
             GROUP BY nome
             ORDER BY pedidos_count DESC;
@@ -241,9 +246,10 @@ async function generateSummaryCSV() {
         fs.writeFileSync(filePath, finalCSV);
 
         console.log(`Resumo gerado com sucesso: ${filePath}`);
-        return filePath; // Opcional, para usar em e-mails ou outros usos
+        return filePath; // Retorna o caminho do arquivo
     } catch (err) {
         console.error('Erro ao gerar resumo de pedidos:', err);
+        throw err; // Lança o erro para tratamento posterior
     }
 }
 
