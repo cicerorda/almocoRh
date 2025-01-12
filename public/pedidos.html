@@ -153,14 +153,35 @@
             <label for="nome">Seu Nome:</label>
             <input type="text" id="nome" name="nome" placeholder="Digite seu nome" required>
 
-            <label for="empresa">Nome da Empresa:</label>
+            <!--<label for="empresa">Nome da Empresa:</label>
             <input list="empresaList" id="empresa" name="empresa" placeholder="Digite ou selecione a empresa" required>
             <datalist id="empresaList">
-                <!-- Opções de empresa são adicionadas aqui -->
+                 Opções de empresa são adicionadas aqui -->
             </datalist>
             
             <label for="almoco">Almoço:</label>
-            <input type="text" id="almoco" name="almoco" placeholder="Digite o pedido do almoço" required>
+            <input list="almocoOptions" id="almoco" name="almoco" placeholder="Digite o pedido do almoço" required>
+            <datalist id="almocoOptions">
+                <option value="Almoço Completo"></option>
+            </datalist>
+
+            <div id="carneContainer" style="display: none;">
+                <label for="carne" style="display: block; margin-bottom: 5px;">Escolha a carne:</label>
+                <input type="text" id="carne" name="carne" placeholder="Digite a carne desejada">
+            </div>
+
+            <script>
+                // Verifica o valor digitado no campo do almoço e exibe o campo de carne, se necessário
+                document.getElementById("almoco").addEventListener("input", function() {
+                    const carneContainer = document.getElementById("carneContainer");
+                    if (this.value.toLowerCase() === "almoço completo") {
+                        carneContainer.style.display = "block";
+                    } else {
+                        carneContainer.style.display = "none";
+                        document.getElementById("carne").value = ""; // Limpa o campo de carne se não for necessário
+                    }
+                });
+            </script>
 
             <label for="salada">Salada:</label>
             <select id="salada" name="salada" required>
@@ -226,12 +247,44 @@
         }
 
         // Função para salvar dados no localStorage sempre que um campo mudar
-        const formFields = ["nome", "empresa", "almoco", "salada", "sobremesa", "porcao", "observacoes"];
+        const formFields = ["nome", "empresa", "almoco", "salada", "sobremesa", "porcao","carne", "observacoes"];
         formFields.forEach(field => {
-            document.getElementById(field).addEventListener("input", () => {
-                localStorage.setItem(field, document.getElementById(field).value);
-            });
+            const element = document.getElementById(field); // Verifica se o elemento existe
+            if (element) {
+                element.addEventListener("input", () => {
+                    localStorage.setItem(field, element.value); // Salva no localStorage
+                });
+            } else {
+                console.warn(`Elemento com ID "${field}" não encontrado no DOM.`); // Loga um aviso se o elemento não existir
+            }
         });
+
+        function showDeadlineAlert() {
+            const checkInterval = 60000; // Verifica a cada minuto (60.000ms)
+
+            // Função para verificar se o horário está no intervalo
+            function checkTime() {
+            const now = new Date();
+
+            // Ajuste para o fuso horário de São Paulo (UTC-3 ou UTC-2 no horário de verão)
+            const saoPauloTimeOffset = -3; // UTC-3
+            now.setHours(now.getUTCHours() + saoPauloTimeOffset);
+
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+
+            // Verifica se está entre 09:30 e 12:00
+            if ((hours === 9 && minutes >= 30) || (hours === 10) || (hours === 11) || (hours === 12 && minutes === 0)) {
+                alert("O pedido de almoço do dia está encerrado.");
+            }
+        }
+
+            // Inicia a verificação regular
+            checkTime(); // Verifica imediatamente
+            setInterval(checkTime, checkInterval); // Continua verificando a cada minuto
+            }
+
+        showDeadlineAlert();
 
         // Carregar dados salvos do localStorage ao carregar a página
         window.addEventListener("load", () => {
@@ -251,10 +304,19 @@
         document.getElementById("pedidoForm").addEventListener("submit", function(event) {
             event.preventDefault();
 
+            const almoco = document.getElementById("almoco").value;
+            const carne = document.getElementById("carne").value;
+
+            // Adiciona o texto da carne ao campo "Almoço" se for "Almoço Completo"
+            const almocoFinal =
+                almoco.toLowerCase() === "almoço completo" && carne
+                    ? `${almoco}. Carne: ${carne}`
+                    : almoco;
+
             const pedido = {
                 nome: document.getElementById("nome").value,
                 empresa: document.getElementById("empresa").value,
-                almoco: document.getElementById("almoco").value,
+                almoco: almocoFinal,
                 salada: document.getElementById("salada").value,
                 sobremesa: document.getElementById("sobremesa").value,
                 porcao: document.getElementById("porcao").value,
