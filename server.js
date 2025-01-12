@@ -150,14 +150,6 @@ app.use(session({
     cookie: { secure: true }  // `secure: true` em produção com HTTPS
 }));
 
-// Função de autenticação
-function isAuthenticated(req, res, next) {
-    if (req.session.authenticated) {
-        return next();
-    }
-    res.redirect('/login');
-}
-
 // Função para salvar cabeçalhos em arquivos CSV
 function checkAndWriteHeader(filePath) {
     if (!fs.existsSync(filePath)) {
@@ -316,18 +308,33 @@ async function enviarEmailDiario() {
     }
 }
 
-
-// Função para enviar e-mail mensal e limpar o arquivo CSV mensal
 async function enviarEmailMensal() {
     try {
+        // Calcula o intervalo de datas: do dia 26 do mês anterior ao dia 25 do mês atual
+        const today = new Date();
+        const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 26, 0, 0, 0); // Dia 26 do mês anterior
+        const endDate = new Date(today.getFullYear(), today.getMonth(), 25, 23, 59, 59); // Dia 25 do mês atual
+
+        console.log(`Filtrando pedidos entre ${startDate.toISOString()} e ${endDate.toISOString()}`);
+
+        // Consulta os pedidos no intervalo
+        const result = await pool.query(
+            `SELECT * FROM pedidos WHERE data_hora BETWEEN $1 AND $2 ORDER BY data_hora ASC`,
+            [startDate, endDate]
+        );
+
+        if (result.rows.length === 0) {
+            console.log('Nenhum pedido encontrado para o período.');
+            return;
+        }
+
+        // Formata os pedidos para CSV
+        const pedidosMensal = result.rows.map(row =>
+            `${row.nome};${row.empresa || ''};${row.almoco};${row.salada};${row.sobremesa};${row.porcao};${row.carneextra || ''};${row.observacoes || ''};${row.data_hora.toISOString()}`
+        ).join('\n');
+
         // Gerar o arquivo de resumo antes de enviar o e-mail
         const filePathResumo = await generateSummaryCSV();
-
-        const result = await pool.query('SELECT * FROM pedidos ORDER BY data_hora ASC');
-        const summaryCSVContent = fs.readFileSync('summary_pedidos.csv', 'utf-8');
-        const pedidosMensal = result.rows.map(row =>
-            `${row.nome};${row.empresa};${row.almoco};${row.salada};${row.sobremesa};${row.porcao};${row.carneextra || ''};${row.observacoes || ''};${row.data_hora.toISOString()}`
-        ).join('\n');
 
         const transporter = nodemailer.createTransport({
             service: 'gmail',
@@ -342,7 +349,7 @@ async function enviarEmailMensal() {
             to: 'recursoshumanos@metalburgo.com.br',
             bcc: 'ttcicero@gmail.com',
             subject: 'Relatório Mensal de Pedidos de Refeição',
-            text: 'Segue em anexo o relatório de pedidos de refeições do mês.',
+            text: `Segue em anexo o relatório de pedidos de refeições entre ${startDate.toISOString()} e ${endDate.toISOString()}.`,
             attachments: [
                 {
                     filename: 'pedidos_mensais.csv',
@@ -351,24 +358,18 @@ async function enviarEmailMensal() {
                 },
                 {
                     filename: 'summary_pedidos.csv',
-                    path: filePathResumo, // Caminho do arquivo de resumo
+                    path: filePathResumo,
                     type: 'text/csv'
                 }
             ]
         };
 
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('Erro ao enviar e-mail mensal:', error);
-            } else {
-                console.log('E-mail mensal enviado com sucesso:', info.response);
-            }
-        });
+        const info = await transporter.sendMail(mailOptions);
+        console.log('E-mail mensal enviado com sucesso:', info.response);
     } catch (err) {
         console.error('Erro ao buscar pedidos para o e-mail mensal:', err);
     }
 }
-
 
 // Função para limpar o conteúdo de um arquivo CSV
 function clearCSV(filePath) {
@@ -408,12 +409,11 @@ cron.schedule('35 9 * * 1-5', enviarEmailDiario, {
     timezone: "America/Sao_Paulo"
 });
 
-cron.schedule('0 1 1 * *', () => {
-    const today = new Date();
-    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    if (today.getDate() === lastDay) {
-        enviarEmailMensal();
-    }
+cron.schedule('0 1 26 * *', () => {
+    console.log('Iniciando envio do relatório mensal...');
+    enviarEmailMensal();
+}, {
+    timezone: "America/Sao_Paulo" // Configuração do fuso horário
 });
 
 app.get('/', (req, res) => {
