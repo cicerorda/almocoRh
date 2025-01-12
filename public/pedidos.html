@@ -289,7 +289,7 @@
         window.addEventListener("load", () => {
             // Preenche os campos com valores do localStorage, se existirem
             formFields.forEach(field => {
-                if (localStorage.getItem(field)) {
+                if (localStorage.getItem(field) && document.getElementById(field)) {
                     document.getElementById(field).value = localStorage.getItem(field);
                 }
             });
@@ -297,14 +297,17 @@
             // Verifica e ajusta a exibição do campo "Escolha a carne" com base no valor de "Almoço"
             const almocoField = document.getElementById("almoco");
             const carneContainer = document.getElementById("carneContainer");
-            if (almocoField.value.toLowerCase() === "almoço completo") {
-                carneContainer.style.display = "block"; // Exibe o campo de carne
-            } else {
-                carneContainer.style.display = "none"; // Esconde o campo de carne
-                document.getElementById("carne").value = ""; // Limpa o campo de carne
+
+            if (almocoField && almocoField.value.toLowerCase() === "almoço completo") {
+                carneContainer.style.display = "block";
+            } else if (carneContainer) {
+                carneContainer.style.display = "none";
+                const carneField = document.getElementById("carne");
+                if (carneField) carneField.value = ""; // Limpa o campo de carne
             }
 
-            loadEmpresaOptions(); // Carregar as opções de empresa ao carregar a página
+            // Carrega as opções de empresa, verificando a existência do elemento
+            loadEmpresaOptions();
         });
         
         // Limpar dados do formulário e do localStorage após o envio
@@ -363,24 +366,20 @@
         // Função para carregar as opções de empresa
         function loadEmpresaOptions() {
             const empresaList = document.getElementById("empresaList");
+
+            // Verifica se o elemento existe no DOM
+            if (!empresaList) {
+                console.warn('Elemento com ID "empresaList" não encontrado no DOM.');
+                return; // Sai da função se o elemento não for encontrado
+            }
+
             empresaList.innerHTML = ""; // Limpa as opções existentes
             const empresas = JSON.parse(localStorage.getItem("empresas") || "[]");
+
             empresas.forEach(empresa => {
                 const option = document.createElement("option");
                 option.value = empresa;
                 empresaList.appendChild(option);
-            });
-
-        // Função para apagar o CSV
-        document.getElementById("deleteCSV").addEventListener("click", function() {
-            if (confirm("Tem certeza de que deseja apagar o arquivo CSV? Essa ação é irreversível!")) {
-                fetch('/api/pedidos/apagar', {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => alert(data.message))
-                .catch(error => console.error('Erro:', error));
-            }
         });
 
         // Envio de e-mail
