@@ -27,17 +27,6 @@ app.use(express.static('public'));
 app.use(cors());
 app.use(bodyParser.json());
 
-app.use(session({
-    store: new pgSession({
-        pool: pool, // Sua pool do PostgreSQL
-        tableName: 'session' // Nome da tabela para armazenar sessões
-    }),
-    secret: process.env.SESSION_SECRET || 'sua-chave-secreta',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: true } // Configure `true` para HTTPS em produção
-}));
-
 app.get('/favicon.ico', (req, res) => res.status(204));
 
 // Configuração da conexão com o banco de dados
