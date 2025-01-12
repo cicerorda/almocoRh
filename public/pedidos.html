@@ -287,17 +287,25 @@
 
         // Carregar dados salvos do localStorage ao carregar a página
         window.addEventListener("load", () => {
+            // Preenche os campos com valores do localStorage, se existirem
             formFields.forEach(field => {
                 if (localStorage.getItem(field)) {
                     document.getElementById(field).value = localStorage.getItem(field);
                 }
             });
 
+            // Verifica e ajusta a exibição do campo "Escolha a carne" com base no valor de "Almoço"
+            const almocoField = document.getElementById("almoco");
+            const carneContainer = document.getElementById("carneContainer");
+            if (almocoField.value.toLowerCase() === "almoço completo") {
+                carneContainer.style.display = "block"; // Exibe o campo de carne
+            } else {
+                carneContainer.style.display = "none"; // Esconde o campo de carne
+                document.getElementById("carne").value = ""; // Limpa o campo de carne
+            }
+
             loadEmpresaOptions(); // Carregar as opções de empresa ao carregar a página
-
         });
-
-
         
         // Limpar dados do formulário e do localStorage após o envio
         document.getElementById("pedidoForm").addEventListener("submit", function(event) {
@@ -415,39 +423,6 @@
             .catch(error => console.error('Erro ao baixar o CSV:', error));
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            const almocoField = document.getElementById("almoco");
-            const carneContainer = document.getElementById("carneContainer");
-
-            // Função para verificar e ajustar a exibição do campo de carne
-            function verificarCampoCarne() {
-                const almocoValor = localStorage.getItem("almoco") || almocoField.value;
-                if (almocoValor.toLowerCase() === "almoço completo") {
-                    carneContainer.style.display = "block";
-                } else {
-                    carneContainer.style.display = "none";
-                    document.getElementById("carne").value = ""; // Limpa o campo de carne
-                }
-            }
-
-            // Verifica o estado inicial ao carregar a página
-            verificarCampoCarne();
-
-            // Adiciona o evento de input ao campo "Almoço"
-            almocoField.addEventListener("input", function () {
-                localStorage.setItem("almoco", almocoField.value); // Atualiza o localStorage
-                verificarCampoCarne();
-            });
-
-            // Carrega outros campos salvos no localStorage
-            const formFields = ["nome", "almoco", "salada", "sobremesa", "porcao", "carne", "observacoes"];
-            formFields.forEach(field => {
-                const element = document.getElementById(field);
-                if (element && localStorage.getItem(field)) {
-                    element.value = localStorage.getItem(field);
-                }
-            });
-        });
     }
     </script>
 
