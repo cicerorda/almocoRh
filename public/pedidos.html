@@ -419,22 +419,22 @@
             const almocoField = document.getElementById("almoco");
             const carneContainer = document.getElementById("carneContainer");
 
-            // Verifica o valor inicial ao carregar a página
-            if (almocoField.value.toLowerCase() === "almoço completo") {
-                carneContainer.style.display = "block";
-            } else {
-                carneContainer.style.display = "none";
-            }
-
-            // Adiciona o evento de input para atualizar dinamicamente
-            almocoField.addEventListener("input", function () {
-                if (almocoField.value.toLowerCase() === "almoço completo") {
+            // Função para atualizar a exibição do campo de carne
+            function atualizarCarneContainer() {
+                console.log("Valor atual do campo Almoço:", almocoField.value); // Log para verificar o valor
+                if (almocoField.value.trim().toLowerCase() === "almoço completo") {
                     carneContainer.style.display = "block";
                 } else {
                     carneContainer.style.display = "none";
                     document.getElementById("carne").value = ""; // Limpa o campo de carne
                 }
-            });
+            }
+
+            // Verifica o valor inicial ao carregar a página
+            atualizarCarneContainer();
+
+            // Adiciona o evento de input para atualizar dinamicamente
+            almocoField.addEventListener("input", atualizarCarneContainer);
         });
     }
     </script>
