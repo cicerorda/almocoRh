@@ -414,6 +414,28 @@
             })
             .catch(error => console.error('Erro ao baixar o CSV:', error));
         });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const almocoField = document.getElementById("almoco");
+            const carneContainer = document.getElementById("carneContainer");
+
+            // Verifica o valor inicial ao carregar a página
+            if (almocoField.value.toLowerCase() === "almoço completo") {
+                carneContainer.style.display = "block";
+            } else {
+                carneContainer.style.display = "none";
+            }
+
+            // Adiciona o evento de input para atualizar dinamicamente
+            almocoField.addEventListener("input", function () {
+                if (almocoField.value.toLowerCase() === "almoço completo") {
+                    carneContainer.style.display = "block";
+                } else {
+                    carneContainer.style.display = "none";
+                    document.getElementById("carne").value = ""; // Limpa o campo de carne
+                }
+            });
+        });
     }
     </script>
 
