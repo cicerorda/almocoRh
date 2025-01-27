@@ -363,14 +363,22 @@ async function enviarEmailMensal() {
             return;
         }
 
+<<<<<<< HEAD
         // Formata os pedidos mensais para CSV
+=======
+>>>>>>> 95ceb830fb4acfe78b4ec2ce15fe83fedbac11aa
         const pedidosMensal = result.rows.map(row =>
             `${row.nome};${row.empresa || ''};${row.almoco};${row.salada};${row.sobremesa};${row.porcao};${row.carneextra || ''};${row.observacoes || ''};${row.data_hora.toISOString()}`
         ).join('\n');
 
+<<<<<<< HEAD
         // Salvar pedidos_mensais.csv
         const filePathMensal = 'pedidos_mensais.csv';
         fs.writeFileSync(filePathMensal, `nome;empresa;almoco;salada;sobremesa;porcao;carneExtra;observacoes;data_hora\n${pedidosMensal}`);
+=======
+        // Chamar a função para gerar o resumo com o mesmo intervalo
+        const filePathResumo = await generateSummaryCSV(startDate, endDate);
+>>>>>>> 95ceb830fb4acfe78b4ec2ce15fe83fedbac11aa
 
         console.log('Relatório mensal gerado com sucesso.');
 
