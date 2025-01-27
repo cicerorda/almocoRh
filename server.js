@@ -216,10 +216,11 @@ async function getRecentOrders() {
     }
 }
 
-async function generateSummaryCSV() {
+async function generateSummaryCSV(startDate, endDate) {
     try {
-        // Consulta os dados do banco de dados
-        const result = await pool.query(`
+        // Consulta SQL ajustada para considerar o intervalo de datas
+        const result = await pool.query(
+            `
             SELECT 
                 nome, 
                 COUNT(*) AS pedidos_count, 
@@ -227,28 +228,57 @@ async function generateSummaryCSV() {
                     WHEN carneExtra ~ '^[0-9]+$' THEN CAST(carneExtra AS INTEGER) 
                     ELSE 0 END), 0) AS carneextra_total
             FROM pedidos
+            WHERE data_hora BETWEEN $1 AND $2
             GROUP BY nome
             ORDER BY pedidos_count DESC;
-        `);
+            `,
+            [startDate, endDate]
+        );
 
         // Formata os resultados em formato CSV
         const csvHeader = 'nome;quantidade_pedidos;carneextra_total\n';
-        const csvContent = result.rows.map(row => 
-            `${row.nome};${row.pedidos_count};${row.carneextra_total}`
-        ).join('\n');
+        const csvContent = result.rows
+            .map(row => `${row.nome};${row.pedidos_count};${row.carneextra_total}`)
+            .join('\n');
 
         const finalCSV = csvHeader + csvContent;
 
-        // Salva o CSV no sistema de arquivos ou retorna o conteúdo
+        // Salva o CSV no sistema de arquivos
         const filePath = 'summary_pedidos.csv';
         fs.writeFileSync(filePath, finalCSV);
 
         console.log(`Resumo gerado com sucesso: ${filePath}`);
-        return filePath; // Retorna o caminho do arquivo
+        return filePath;
     } catch (err) {
         console.error('Erro ao gerar resumo de pedidos:', err);
-        throw err; // Lança o erro para tratamento posterior
+        throw err;
     }
+}
+
+function generateSummaryFromMensais(rows) {
+    // Agrupamento dos dados
+    const summary = rows.reduce((acc, row) => {
+        if (!acc[row.nome]) {
+            acc[row.nome] = { pedidos_count: 0, carneextra_total: 0 };
+        }
+
+        acc[row.nome].pedidos_count += 1;
+
+        // Soma a quantidade de carne extra (se for um número válido)
+        if (row.carneextra && !isNaN(row.carneextra)) {
+            acc[row.nome].carneextra_total += parseInt(row.carneextra, 10);
+        }
+
+        return acc;
+    }, {});
+
+    // Converter o resumo em formato CSV
+    const csvHeader = 'nome;quantidade_pedidos;carneextra_total\n';
+    const csvContent = Object.entries(summary)
+        .map(([nome, data]) => `${nome};${data.pedidos_count};${data.carneextra_total}`)
+        .join('\n');
+
+    return csvHeader + csvContent;
 }
 
 app.post('/api/pedidos/enviar-email', async (req, res) => {
@@ -316,14 +346,13 @@ async function enviarEmailDiario() {
 
 async function enviarEmailMensal() {
     try {
-        // Calcula o intervalo de datas: do dia 26 do mês anterior ao dia 25 do mês atual
         const today = new Date();
         const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 26, 0, 0, 0); // Dia 26 do mês anterior
-        const endDate = new Date(today.getFullYear(), today.getMonth(), 25, 23, 59, 59); // Dia 25 do mês atual
+        const endDate = new Date(today.getFullYear(), today.getMonth(), 25, 23, 59, 59);   // Dia 25 do mês atual
 
         console.log(`Filtrando pedidos entre ${startDate.toISOString()} e ${endDate.toISOString()}`);
 
-        // Consulta os pedidos no intervalo
+        // Consulta para pedidos mensais
         const result = await pool.query(
             `SELECT * FROM pedidos WHERE data_hora BETWEEN $1 AND $2 ORDER BY data_hora ASC`,
             [startDate, endDate]
@@ -334,14 +363,26 @@ async function enviarEmailMensal() {
             return;
         }
 
-        // Formata os pedidos para CSV
+        // Formata os pedidos mensais para CSV
         const pedidosMensal = result.rows.map(row =>
             `${row.nome};${row.empresa || ''};${row.almoco};${row.salada};${row.sobremesa};${row.porcao};${row.carneextra || ''};${row.observacoes || ''};${row.data_hora.toISOString()}`
         ).join('\n');
 
-        // Gerar o arquivo de resumo antes de enviar o e-mail
-        const filePathResumo = await generateSummaryCSV();
+        // Salvar pedidos_mensais.csv
+        const filePathMensal = 'pedidos_mensais.csv';
+        fs.writeFileSync(filePathMensal, `nome;empresa;almoco;salada;sobremesa;porcao;carneExtra;observacoes;data_hora\n${pedidosMensal}`);
 
+        console.log('Relatório mensal gerado com sucesso.');
+
+        // Gerar o resumo com base nos dados já filtrados
+        const summaryData = generateSummaryFromMensais(result.rows);
+
+        const filePathResumo = 'summary_pedidos.csv';
+        fs.writeFileSync(filePathResumo, summaryData);
+
+        console.log('Resumo gerado com sucesso.');
+
+        // Configurar transporte de e-mail
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
@@ -350,6 +391,7 @@ async function enviarEmailMensal() {
             }
         });
 
+        // Configurar e enviar e-mail
         const mailOptions = {
             from: `"No Reply" <${process.env.GMAIL_USER}>`,
             to: 'recursoshumanos@metalburgo.com.br',
@@ -359,7 +401,7 @@ async function enviarEmailMensal() {
             attachments: [
                 {
                     filename: 'pedidos_mensais.csv',
-                    content: `nome;empresa;almoco;salada;sobremesa;porcao;carneExtra;observacoes;data_hora\n${pedidosMensal}`,
+                    path: filePathMensal,
                     type: 'text/csv'
                 },
                 {
@@ -373,7 +415,7 @@ async function enviarEmailMensal() {
         const info = await transporter.sendMail(mailOptions);
         console.log('E-mail mensal enviado com sucesso:', info.response);
     } catch (err) {
-        console.error('Erro ao buscar pedidos para o e-mail mensal:', err);
+        console.error('Erro ao enviar o e-mail mensal:', err);
     }
 }
 
